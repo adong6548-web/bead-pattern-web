@@ -1,0 +1,54 @@
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
+  safelist: [
+    "rounded-2xl",
+    "rounded-xl",
+    "rounded-lg",
+    "rounded-full",
+    "border",
+    "border-dashed",
+    "border-stone-200",
+    "border-stone-300",
+    "border-emerald-300",
+    "border-white",
+    "bg-white",
+    "bg-white/75",
+    "bg-white/80",
+    "bg-white/85",
+    "bg-stone-50",
+    "bg-stone-100",
+    "bg-emerald-50",
+    "bg-emerald-600",
+    "bg-emerald-700",
+    "bg-coral",
+    "text-xs",
+    "text-sm",
+    "text-base",
+    "text-2xl",
+    "text-ink",
+    "text-coral",
+    "text-white",
+    "shadow-sm",
+    "min-w-0",
+    "w-full",
+    "overflow-x-auto",
+    "min-w-max",
+    "hover:bg-stone-50",
+    "hover:bg-white",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        ink: "#1e2522",
+        paper: "#f7f3ea",
+        moss: "#5a7d62",
+        coral: "#df7861",
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;
