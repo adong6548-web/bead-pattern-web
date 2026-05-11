@@ -86,7 +86,6 @@ export async function downloadPatternImage(pattern: PatternResult, options: Patt
 function renderPatternExport(
   pattern: PatternResult,
   {
-    axisSize,
     background = "white",
     cellSize,
     grid = "standard",
