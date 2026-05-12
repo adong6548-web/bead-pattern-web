@@ -29,3 +29,4 @@ tailwind-debug.txt
 
 # temporary exports
 *.zip
+tsconfig.tsbuildinfo
