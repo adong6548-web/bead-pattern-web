@@ -42,6 +42,7 @@ export function FocusMode({ onExit, pattern }: FocusModeProps) {
   const focusColorCounts = useMemo(() => [...pattern.colorCounts].sort((a, b) => b.count - a.count), [pattern.colorCounts]);
   const runs = useMemo(() => getRunsForColor(pattern, selectedColorId), [pattern, selectedColorId]);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Pre-existing FocusMode behavior: switching the viewed pattern intentionally resets the default focus color and zoom. This autosave PR preserves the paused FocusMode behavior without refactoring unrelated hidden UI. */
   useEffect(() => {
     setSelectedColorId(getDefaultFocusColorId(pattern));
     setZoomIndex(1);
@@ -59,6 +60,7 @@ export function FocusMode({ onExit, pattern }: FocusModeProps) {
       setLoadedStorageKey(storageKey);
     }
   }, [storageKey, validCellKeys]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (loadedStorageKey !== storageKey) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   PATTERN_EXPORT_BACKGROUND_OPTIONS,
   PATTERN_EXPORT_GRID_OPTIONS,
@@ -23,22 +23,25 @@ import {
   type PatternExportScale,
 } from "@/engine/exportPatternImage";
 import type { PatternResult } from "@/types/pattern";
+import type { PersistedExportSettings } from "@/utils/persistence";
 
 type PatternExportPanelProps = {
+  initialDraft?: PersistedExportSettings | null;
+  onDraftChange?: (draft: PersistedExportSettings) => void;
   pattern: PatternResult;
 };
 
-export function PatternExportPanel({ pattern }: PatternExportPanelProps) {
-  const [kind, setKind] = useState<PatternExportKind>("color");
-  const [scale, setScale] = useState<PatternExportScale>("hd");
-  const [background, setBackground] = useState<PatternExportBackground>("white");
-  const [grid, setGrid] = useState<PatternExportGrid>("standard");
-  const [legendSort, setLegendSort] = useState<PatternExportLegendSort>("code");
-  const [margin, setMargin] = useState<PatternExportMargin>("standard");
-  const [showColorCodes, setShowColorCodes] = useState(false);
-  const [showCoordinates, setShowCoordinates] = useState(true);
-  const [showLegend, setShowLegend] = useState(true);
-  const [showTitle, setShowTitle] = useState(true);
+export function PatternExportPanel({ initialDraft, onDraftChange, pattern }: PatternExportPanelProps) {
+  const [kind, setKind] = useState<PatternExportKind>(() => initialDraft?.kind ?? "color");
+  const [scale, setScale] = useState<PatternExportScale>(() => initialDraft?.scale ?? "hd");
+  const [background, setBackground] = useState<PatternExportBackground>(() => initialDraft?.background ?? "white");
+  const [grid, setGrid] = useState<PatternExportGrid>(() => initialDraft?.grid ?? "standard");
+  const [legendSort, setLegendSort] = useState<PatternExportLegendSort>(() => initialDraft?.legendSort ?? "code");
+  const [margin, setMargin] = useState<PatternExportMargin>(() => initialDraft?.margin ?? "standard");
+  const [showColorCodes, setShowColorCodes] = useState(() => initialDraft?.showColorCodes ?? false);
+  const [showCoordinates, setShowCoordinates] = useState(() => initialDraft?.showCoordinates ?? true);
+  const [showLegend, setShowLegend] = useState(() => initialDraft?.showLegend ?? true);
+  const [showTitle, setShowTitle] = useState(() => initialDraft?.showTitle ?? true);
   const [message, setMessage] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -46,6 +49,21 @@ export function PatternExportPanel({ pattern }: PatternExportPanelProps) {
   const colorCodesAreForced = kind !== "color";
   const selectedScale = PATTERN_EXPORT_SCALE_PRESETS[scale];
   const fileName = useMemo(() => getPatternExportFileName(pattern, kind), [kind, pattern]);
+
+  useEffect(() => {
+    onDraftChange?.({
+      background,
+      grid,
+      kind,
+      legendSort,
+      margin,
+      scale,
+      showColorCodes,
+      showCoordinates,
+      showLegend,
+      showTitle,
+    });
+  }, [background, grid, kind, legendSort, margin, onDraftChange, scale, showColorCodes, showCoordinates, showLegend, showTitle]);
 
   async function handleDownload() {
     if (!canDownload) {

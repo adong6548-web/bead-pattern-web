@@ -17,6 +17,7 @@ export function PatternGrid({ pattern }: PatternGridProps) {
   const cellSize = BASE_CELL_SIZE * zoom;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Pre-existing PatternGrid behavior: when the rendered pattern dimensions change, the preview zoom intentionally resets to 100%. This autosave PR preserves that behavior without changing preview interactions.
     setZoomIndex(2);
   }, [pattern?.width, pattern?.height]);
 
