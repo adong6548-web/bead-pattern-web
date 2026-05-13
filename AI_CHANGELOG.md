@@ -7,6 +7,41 @@
 
 ---
 
+## 2026-05-14 / Milestone 4.6 Phase 3 / 基础离线 App Shell 支持
+- 修改内容：新增最小 Web App Manifest、第一方 Service Worker 与客户端注册组件，让用户在线打开一次后可在离线刷新时加载基础 app shell，并继续使用 Phase 1 本地草稿恢复
+- 修改文件：
+  - `src/app/manifest.ts`
+  - `public/sw.js`
+  - `src/components/ServiceWorkerRegister.tsx`
+  - `src/app/layout.tsx`
+  - `AI_CHANGELOG.md`
+- 关键行为：
+  - 新增最小 manifest：`Bead Pattern Web` / `Bead Pattern`，`start_url` 与 `scope` 均为 `/`
+  - Service Worker 使用 `bead-pattern-app-shell-v1` 与 `bead-pattern-runtime-v1` 两个 cache
+  - install 时缓存 `/`、`/favicon.ico`、`/manifest.webmanifest`，并从首页 HTML 中提取 `/_next/static/...` 资源做首轮 app shell 预缓存
+  - navigation 请求采用 network-first，离线失败时回退到缓存的 `/`
+  - 同源静态资源采用 cache-first，成功响应进入 runtime cache
+  - 仅处理 GET 请求，不处理跨域、`blob:`、`data:` 请求，不刻意缓存用户导出的 PNG 或上传原图
+  - 客户端仅在浏览器中注册 `/sw.js`，注册失败不会影响应用
+- 有意不改：
+  - `src/engine/generatePattern.ts`
+  - `src/engine/exportPatternImage.ts`
+  - PNG 导出逻辑
+  - FocusMode 入口 / 可见性
+  - 自动保存 schema / storage model
+  - 图片守护阈值与逻辑
+  - IndexedDB、后端、云同步、PWA 插件、Web Worker、智能推荐、颜色算法
+- 测试建议：
+  - 使用 `npm run build` + `npm start` 做生产近似环境测试
+  - 在线打开一次页面，生成图纸并等待本地自动保存
+  - 在线刷新确认恢复提示仍可用
+  - 在 DevTools Network 中切换 Offline 后刷新，页面应加载 cached app shell 而不是浏览器离线错误
+  - 若有有效本地草稿，离线刷新后应能显示恢复提示并恢复已保存快照
+  - 恢复在线后确认图片上传、生成、PNG 导出和上传守护提示仍正常
+- 风险：中（手写 Service Worker 只能缓存已访问过的同源静态资源；完整 PWA 产品化仍需后续专项设计）
+- 是否影响 engine：否
+- 是否影响导出：否
+
 ## 2026-05-14 / 文档治理 / 新增 AI 开发防失控规则
 - 修改内容：新增 `AI_DEVELOPMENT_GUARDRAILS.md`，并在 `CODEX.md` 与 `AGENTS.md` 中加入强制阅读指针，约束后续 Codex / Claude / AI 编码会话的计划、范围、git hygiene、项目边界和最终报告流程
 - 修改文件：
