@@ -7,6 +7,31 @@
 
 ---
 
+## 2026-05-14 / Phase 4A / 图像生成质量基线与手动 QA 清单
+- 修改内容：新增 `QUALITY_BASELINE.md`，记录当前图片到拼豆图纸生成管线、已知质量瓶颈、固定手动测试图片类别、视觉质量检查项、非回归清单、前后对比协议和下一步 Phase 4B 建议
+- 修改文件：
+  - `QUALITY_BASELINE.md`
+  - `AI_CHANGELOG.md`
+- 关键行为：
+  - 明确 Phase 4 当前转向为图像生成质量优化，而不是智能推荐 UI
+  - 定义手动 QA 类别：白底像素图、透明像素图、扁平卡通/logo、多色插画、二次元线稿、浅色宠物、深色宠物、真人人像（实验）、复杂背景照片、透明 PNG 主体、极宽图、极高图
+  - 明确未来算法改动前后必须用同一图片、同一尺寸、同一设置比较
+  - 明确不能为了改善照片而破坏像素图、白底忽略、透明 PNG、PNG 导出、自动保存、离线 app shell 等稳定能力
+  - 推荐下一步 Phase 4B 聚焦 photo 模式采样 / 预处理，先不要重写完整颜色量化或恢复智能推荐
+- 有意不改：
+  - `src/engine/generatePattern.ts`
+  - `src/engine/exportPatternImage.ts`
+  - PNG 导出逻辑
+  - 自动保存 schema / storage model
+  - Service Worker / manifest / 离线 shell
+  - FocusMode 入口 / 可见性
+  - UI、运行时行为、依赖、后端、AI API、PDF、IndexedDB、Web Worker
+- 测试建议：
+  - 文档变更无运行时行为；检查重点是确认基线内容完整、没有触碰源码
+- 风险：低
+- 是否影响 engine：否
+- 是否影响导出：否
+
 ## 2026-05-14 / Milestone 4.6 Phase 3 / 基础离线 App Shell 支持
 - 修改内容：新增最小 Web App Manifest、第一方 Service Worker 与客户端注册组件，让用户在线打开一次后可在离线刷新时加载基础 app shell，并继续使用 Phase 1 本地草稿恢复
 - 修改文件：
