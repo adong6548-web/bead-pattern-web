@@ -1,5 +1,10 @@
 # CODEX.md
 
+## Mandatory AI Guardrails
+Before coding, read `AI_DEVELOPMENT_GUARDRAILS.md`.
+
+For non-trivial tasks, follow the plan / scope / approval workflow in that document. These guardrails are mandatory, not optional.
+
 ## 项目简介
 这是一个图片转拼豆图纸的 Web MVP 工具。用户上传图片后，系统在浏览器本地生成拼豆图纸，支持图纸预览、多尺寸方案、颜色统计和高清 PNG 导出。
 
