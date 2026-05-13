@@ -94,6 +94,7 @@ export function PatternTool() {
     availableVariants[0] ??
     null;
   const pattern = selectedVariant?.pattern ?? null;
+  const isRestoredSnapshotOnly = imageData === null && restoredVariant !== null && variants.length === 0;
 
   useEffect(() => {
     return () => {
@@ -315,6 +316,24 @@ export function PatternTool() {
           <aside className="flex min-w-0 flex-col gap-4 2xl:sticky 2xl:top-4 2xl:self-start">
             <ImageUploader fileName={selectedFileName} imageUrl={previewUrl} isProcessing={isProcessing} onFileSelect={handleFileSelect} />
 
+            {error ? (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                {error}
+              </div>
+            ) : null}
+
+            {notice ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm">
+                {notice}
+              </div>
+            ) : null}
+
+            {isRestoredSnapshotOnly ? (
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-ink/70 shadow-sm">
+                本地草稿仅恢复上次选中的尺寸方案。如需生成其他尺寸，请重新上传原图。
+              </div>
+            ) : null}
+
             <GenerationSettings
               colorLimit={colorLimit}
               colorStyle={colorStyle}
@@ -328,18 +347,6 @@ export function PatternTool() {
               ignoreWhiteBackground={ignoreWhiteBackground}
               onIgnoreWhiteBackgroundChange={setIgnoreWhiteBackground}
             />
-
-            {error ? (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
-                {error}
-              </div>
-            ) : null}
-
-            {notice ? (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm">
-                {notice}
-              </div>
-            ) : null}
 
             <AspectRatioNotice pattern={pattern} />
 
