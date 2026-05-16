@@ -10,11 +10,57 @@ export type PatternColorStyle = "clean" | "balanced" | "faithful";
 
 export type HueFamily = "red" | "orange" | "yellow" | "green" | "cyan" | "blue" | "purple" | "neutral" | "dark";
 
+export type BeadColorFamily =
+  | "white"
+  | "cream"
+  | "yellow"
+  | "orange"
+  | "red"
+  | "pink"
+  | "purple"
+  | "blue"
+  | "cyan"
+  | "green"
+  | "olive"
+  | "tan"
+  | "brown"
+  | "peach"
+  | "skin"
+  | "gray"
+  | "black"
+  | "neutral"
+  | "other";
+
+export type BeadPaletteSource = "built-in" | "verified-brand" | "user-owned" | "cross-brand-substitute" | "sample";
+
+export type BeadColorAvailability = "available" | "limited" | "retired" | "unknown";
+
+export type LAB = {
+  l: number;
+  a: number;
+  b: number;
+};
+
 export type BeadColor = {
   id: string;
+  brand: string;
+  code: string;
   name: string;
+  displayName: string;
   hex: string;
   rgb: RGB;
+  lab?: LAB;
+  family: BeadColorFamily;
+  availability?: BeadColorAvailability;
+  source?: BeadPaletteSource;
+};
+
+export type BeadPalette = {
+  id: string;
+  brand: string;
+  version: string;
+  source: BeadPaletteSource;
+  colors: BeadColor[];
 };
 
 export type BeadCell = {

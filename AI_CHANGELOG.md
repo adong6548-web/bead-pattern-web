@@ -7,6 +7,25 @@
 
 ---
 
+## 2026-05-17 / Phase 4D-0 / Palette-first 色卡架构基础
+- 修改内容：为后续接入真实拼豆色库（如品牌官方色卡、用户自有子集、跨品牌替代色卡）先打底，补充 palette-first 数据模型与内置色卡注册层，同时保持当前 common palette 与现有生成/导出/存档兼容
+- 修改文件：
+  - `src/types/pattern.ts`
+  - `src/palettes/common.ts`
+  - `src/palettes/index.ts`
+  - `AI_CHANGELOG.md`
+- 关键行为：
+  - `BeadColor` 现支持 `brand`、`code`、`displayName`、`hex`、`rgb`、`family`、`availability`、`source`，并预留可选 `lab`
+  - 新增 `BeadPalette` 模型，支持 `id`、`brand`、`version`、`source`、`colors[]`
+  - 现有 common palette 升级为 `commonPaletteDefinition`，同时继续导出兼容旧调用方式的 `commonPalette` 颜色数组
+  - 新增最小 `src/palettes/index.ts` 注册层，便于未来挂接完整品牌色库、用户拥有子集、跨品牌替代调色板与 palette 比较/评分
+- 有意不改：
+  - 生成算法主流程、量化策略、PNG 导出、autosave schema、offline/PWA、`PatternResult` shape、非 photo 模式、UI
+  - 未导入任何未经核验的真实品牌 HEX / LAB 色表，也未使用截图/OCR 作为官方色值来源
+- 风险：低（主要是数据模型与注册层扩展；当前运行仍沿用 common palette）
+- 是否影响 engine：否（架构打底，不改生成行为）
+- 是否影响导出：否
+
 ## 2026-05-16 / Phase 4B / 宠物照片 final-grid 结构权重
 - 修改内容：在 `pet-photo` 且启用白底忽略 / 白底裁剪时，于最终 bead grid 建立后、暗线 refinement / 量化 / 清理前加入结构权重步骤，优先让浅色猫狗主体从木地板、深色包/家具、绿棕室内背景和浅背景中更清楚地分离出来
 - 修改文件：
