@@ -53,6 +53,14 @@ type WorkingCell = {
   hueFamily: HueFamily | null;
 };
 
+type PetPhotoCellRole = "background" | "subject-fill" | "contour" | "key-detail" | "fur-texture";
+
+type PetPhotoStructureResult = {
+  ignoredBackgroundCells: number;
+  protectedCells: Set<WorkingCell>;
+  roles: WeakMap<WorkingCell, PetPhotoCellRole>;
+};
+
 type CellColorAnalysis = {
   rgb: RGB;
   whiteRatio: number;
@@ -483,6 +491,390 @@ function getBoundaryInfo(grid: WorkingCell[][], cell: WorkingCell) {
   };
 }
 
+function createPetPhotoStructureResult(): PetPhotoStructureResult {
+  return {
+    ignoredBackgroundCells: 0,
+    protectedCells: new Set<WorkingCell>(),
+    roles: new WeakMap<WorkingCell, PetPhotoCellRole>(),
+  };
+}
+
+function setPetPhotoRole(result: PetPhotoStructureResult, cell: WorkingCell, role: PetPhotoCellRole, protect = false) {
+  result.roles.set(cell, role);
+
+  if (protect) {
+    result.protectedCells.add(cell);
+  }
+}
+
+function getFourNeighborCells(grid: WorkingCell[][], cell: WorkingCell) {
+  return [
+    grid[cell.y - 1]?.[cell.x],
+    grid[cell.y + 1]?.[cell.x],
+    grid[cell.y]?.[cell.x - 1],
+    grid[cell.y]?.[cell.x + 1],
+  ].filter((neighbor): neighbor is WorkingCell => Boolean(neighbor));
+}
+
+function isGridBoundaryCell(grid: WorkingCell[][], cell: WorkingCell) {
+  return cell.x === 0 || cell.y === 0 || cell.y === grid.length - 1 || cell.x === (grid[0]?.length ?? 0) - 1;
+}
+
+function getPetPhotoBoundarySeedCells(grid: WorkingCell[][]) {
+  const boundaryCells = grid.flat().filter((cell) => isGridBoundaryCell(grid, cell) && !cell.isIgnoredBackground && cell.rgb);
+
+  if (boundaryCells.length > 0) {
+    return boundaryCells;
+  }
+
+  return grid
+    .flat()
+    .filter((cell) => !cell.isIgnoredBackground && cell.rgb && getRawNeighborCells(grid, cell.x, cell.y).some((neighbor) => !neighbor || neighbor.isIgnoredBackground));
+}
+
+function petPhotoBackgroundDistanceLimit(rgb: RGB) {
+  const stats = colorStats(rgb);
+
+  if (stats.brightness > 190 && stats.saturation < 0.2) {
+    return 86;
+  }
+
+  if (stats.brightness < 86 && stats.saturation < 0.35) {
+    return 58;
+  }
+
+  if (stats.saturation < 0.24) {
+    return 74;
+  }
+
+  return 68;
+}
+
+function arePetPhotoBackgroundColorsCompatible(a: RGB, b: RGB) {
+  const aStats = colorStats(a);
+  const bStats = colorStats(b);
+  const distance = rgbDistance(a, b);
+  const limit = Math.min(petPhotoBackgroundDistanceLimit(a), petPhotoBackgroundDistanceLimit(b));
+  const aFamily = getHueFamily(a);
+  const bFamily = getHueFamily(b);
+  const bothNeutral = aStats.saturation < 0.24 && bStats.saturation < 0.24;
+  const bothDark = aStats.brightness < 95 && bStats.brightness < 95;
+  const bothWarmNatural = ["red", "orange", "yellow", "neutral", "dark"].includes(aFamily) && ["red", "orange", "yellow", "neutral", "dark"].includes(bFamily);
+  const bothGreenNatural = ["green", "yellow", "neutral", "dark"].includes(aFamily) && ["green", "yellow", "neutral", "dark"].includes(bFamily);
+
+  if (distance > limit) {
+    return false;
+  }
+
+  return bothNeutral || bothDark || bothWarmNatural || bothGreenNatural || aFamily === bFamily;
+}
+
+type PetPhotoBackgroundCluster = {
+  count: number;
+  rgb: RGB;
+};
+
+function buildPetPhotoBackgroundClusters(seedCells: WorkingCell[]) {
+  const clusters: PetPhotoBackgroundCluster[] = [];
+
+  for (const cell of seedCells) {
+    if (!cell.rgb) {
+      continue;
+    }
+
+    const cluster = clusters
+      .filter((candidate) => arePetPhotoBackgroundColorsCompatible(cell.rgb as RGB, candidate.rgb))
+      .sort((a, b) => rgbDistance(cell.rgb as RGB, a.rgb) - rgbDistance(cell.rgb as RGB, b.rgb))[0];
+
+    if (!cluster) {
+      clusters.push({ count: 1, rgb: cell.rgb });
+      continue;
+    }
+
+    cluster.rgb = {
+      r: Math.round((cluster.rgb.r * cluster.count + cell.rgb.r) / (cluster.count + 1)),
+      g: Math.round((cluster.rgb.g * cluster.count + cell.rgb.g) / (cluster.count + 1)),
+      b: Math.round((cluster.rgb.b * cluster.count + cell.rgb.b) / (cluster.count + 1)),
+    };
+    cluster.count += 1;
+  }
+
+  const minimumClusterSize = Math.max(2, Math.ceil(seedCells.length * 0.08));
+  const sortedClusters = clusters.sort((a, b) => b.count - a.count);
+  const strongClusters = sortedClusters.filter((cluster) => cluster.count >= minimumClusterSize).slice(0, 4);
+
+  return strongClusters.length > 0 ? strongClusters : sortedClusters.slice(0, 1);
+}
+
+function matchesPetPhotoBackgroundCluster(cell: WorkingCell, clusters: PetPhotoBackgroundCluster[]) {
+  if (!cell.rgb) {
+    return false;
+  }
+
+  return clusters.some((cluster) => arePetPhotoBackgroundColorsCompatible(cell.rgb as RGB, cluster.rgb));
+}
+
+function collectPetPhotoFloodBackground(grid: WorkingCell[][], clusters: PetPhotoBackgroundCluster[]) {
+  const backgroundCells = new Set<WorkingCell>();
+  const queue = getPetPhotoBoundarySeedCells(grid).filter((cell) => matchesPetPhotoBackgroundCluster(cell, clusters));
+
+  for (const cell of queue) {
+    backgroundCells.add(cell);
+  }
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const cell = queue[index];
+
+    for (const neighbor of getFourNeighborCells(grid, cell)) {
+      if (backgroundCells.has(neighbor) || neighbor.isIgnoredBackground || !neighbor.rgb || !cell.rgb) {
+        continue;
+      }
+
+      const seedMatch = matchesPetPhotoBackgroundCluster(neighbor, clusters);
+      const stepMatch = rgbDistance(cell.rgb, neighbor.rgb) <= Math.min(petPhotoBackgroundDistanceLimit(cell.rgb), petPhotoBackgroundDistanceLimit(neighbor.rgb));
+
+      if (seedMatch && stepMatch) {
+        backgroundCells.add(neighbor);
+        queue.push(neighbor);
+      }
+    }
+  }
+
+  return backgroundCells;
+}
+
+function getPetPhotoComponents(grid: WorkingCell[][], excludedCells = new Set<WorkingCell>()) {
+  const visited = new Set<WorkingCell>();
+  const components: WorkingCell[][] = [];
+
+  for (const row of grid) {
+    for (const cell of row) {
+      if (visited.has(cell) || excludedCells.has(cell) || cell.isIgnoredBackground || !cell.rgb) {
+        continue;
+      }
+
+      const component: WorkingCell[] = [];
+      const queue = [cell];
+      visited.add(cell);
+
+      for (let index = 0; index < queue.length; index += 1) {
+        const current = queue[index];
+
+        component.push(current);
+
+        for (const neighbor of getFourNeighborCells(grid, current)) {
+          if (visited.has(neighbor) || excludedCells.has(neighbor) || neighbor.isIgnoredBackground || !neighbor.rgb) {
+            continue;
+          }
+
+          visited.add(neighbor);
+          queue.push(neighbor);
+        }
+      }
+
+      components.push(component);
+    }
+  }
+
+  return components.sort((a, b) => b.length - a.length);
+}
+
+function removeIgnoredDrawableCells(cells: WorkingCell[]) {
+  for (let index = cells.length - 1; index >= 0; index -= 1) {
+    if (cells[index].isIgnoredBackground) {
+      cells.splice(index, 1);
+    }
+  }
+}
+
+function markPetPhotoBackgroundCells(result: PetPhotoStructureResult, backgroundCells: Set<WorkingCell>) {
+  for (const cell of backgroundCells) {
+    if (cell.isIgnoredBackground) {
+      continue;
+    }
+
+    cell.rgb = null;
+    cell.color = null;
+    cell.isIgnoredBackground = true;
+    cell.isDarkLine = false;
+    cell.hueFamily = null;
+    result.ignoredBackgroundCells += 1;
+    setPetPhotoRole(result, cell, "background");
+  }
+}
+
+function isPetPhotoKeyDetailCandidate(cell: WorkingCell, grid: WorkingCell[][], subjectCells: Set<WorkingCell>) {
+  if (!cell.rgb) {
+    return false;
+  }
+
+  const stats = colorStats(cell.rgb);
+  const subjectNeighbors = getRawNeighborCells(grid, cell.x, cell.y).filter(
+    (neighbor): neighbor is WorkingCell => Boolean(neighbor?.rgb && subjectCells.has(neighbor)),
+  );
+  const neighborBrightness =
+    subjectNeighbors.reduce((total, neighbor) => total + (neighbor.rgb ? colorStats(neighbor.rgb).brightness : 0), 0) /
+    Math.max(1, subjectNeighbors.length);
+  const darkDetail =
+    (stats.brightness < 88 && stats.saturation < 0.56) ||
+    (cell.rgb.r < 72 && cell.rgb.g < 72 && cell.rgb.b < 72) ||
+    (subjectNeighbors.length >= 3 && stats.brightness < neighborBrightness - 34 && stats.brightness < 128);
+  const tongueOrMouthColor =
+    cell.rgb.r > 112 &&
+    cell.rgb.r > cell.rgb.g + 18 &&
+    cell.rgb.r > cell.rgb.b + 8 &&
+    stats.saturation > 0.2 &&
+    stats.brightness > 70 &&
+    stats.brightness < 215;
+
+  return darkDetail || tongueOrMouthColor;
+}
+
+function markPetPhotoKeyDetails(result: PetPhotoStructureResult, grid: WorkingCell[][], subjectCells: WorkingCell[]) {
+  const subjectSet = new Set(subjectCells);
+  const candidates = new Set(subjectCells.filter((cell) => isPetPhotoKeyDetailCandidate(cell, grid, subjectSet)));
+  const visited = new Set<WorkingCell>();
+  const maxDetailClusterSize = Math.max(3, Math.min(18, Math.floor(subjectCells.length * 0.07)));
+
+  for (const candidate of candidates) {
+    if (visited.has(candidate)) {
+      continue;
+    }
+
+    const cluster: WorkingCell[] = [];
+    const queue = [candidate];
+    visited.add(candidate);
+
+    for (let index = 0; index < queue.length; index += 1) {
+      const current = queue[index];
+
+      cluster.push(current);
+
+      for (const neighbor of getFourNeighborCells(grid, current)) {
+        if (visited.has(neighbor) || !candidates.has(neighbor)) {
+          continue;
+        }
+
+        visited.add(neighbor);
+        queue.push(neighbor);
+      }
+    }
+
+    if (cluster.length > maxDetailClusterSize) {
+      continue;
+    }
+
+    for (const cell of cluster) {
+      if (!cell.rgb) {
+        continue;
+      }
+
+      const stats = colorStats(cell.rgb);
+
+      if (stats.brightness < 118 && !isHighSaturationWarm(cell.rgb)) {
+        cell.isDarkLine = true;
+        cell.hueFamily = "dark";
+      }
+
+      setPetPhotoRole(result, cell, "key-detail", true);
+    }
+  }
+}
+
+function getPetPhotoFurTone(rgb: RGB) {
+  const stats = colorStats(rgb);
+  const max = Math.max(rgb.r, rgb.g, rgb.b);
+  const min = Math.min(rgb.r, rgb.g, rgb.b);
+  const chroma = max - min;
+
+  if (stats.brightness < 132 || (stats.saturation >= 0.24 && chroma >= 48)) {
+    return null;
+  }
+
+  if (stats.brightness >= 232 && chroma < 36) {
+    return { family: "neutral" as HueFamily, rgb: { r: 252, g: 252, b: 250 } };
+  }
+
+  if (stats.brightness >= 198) {
+    return { family: "neutral" as HueFamily, rgb: { r: 224, g: 226, b: 224 } };
+  }
+
+  if (stats.brightness >= 164) {
+    return { family: "neutral" as HueFamily, rgb: { r: 184, g: 190, b: 190 } };
+  }
+
+  return { family: "neutral" as HueFamily, rgb: { r: 136, g: 142, b: 144 } };
+}
+
+function applyPetPhotoFurTonalBands(result: PetPhotoStructureResult, subjectCells: WorkingCell[]) {
+  for (const cell of subjectCells) {
+    if (!cell.rgb || result.roles.get(cell) === "key-detail") {
+      continue;
+    }
+
+    const tone = getPetPhotoFurTone(cell.rgb);
+
+    if (!tone) {
+      continue;
+    }
+
+    cell.rgb = tone.rgb;
+    cell.hueFamily = tone.family;
+    cell.isDarkLine = false;
+
+    if (result.roles.get(cell) !== "contour") {
+      setPetPhotoRole(result, cell, "fur-texture");
+    }
+  }
+}
+
+function markPetPhotoSubjectStructure(result: PetPhotoStructureResult, grid: WorkingCell[][], subjectCells: WorkingCell[]) {
+  const subjectSet = new Set(subjectCells);
+
+  for (const cell of subjectCells) {
+    setPetPhotoRole(result, cell, "subject-fill");
+  }
+
+  for (const cell of subjectCells) {
+    const isContour = getRawNeighborCells(grid, cell.x, cell.y).some((neighbor) => !neighbor || neighbor.isIgnoredBackground || !subjectSet.has(neighbor));
+
+    if (isContour) {
+      setPetPhotoRole(result, cell, "contour", true);
+    }
+  }
+
+  markPetPhotoKeyDetails(result, grid, subjectCells);
+  applyPetPhotoFurTonalBands(result, subjectCells);
+}
+
+function applyPetPhotoFinalGridStructureWeighting(grid: WorkingCell[][], drawableCells: WorkingCell[]) {
+  const result = createPetPhotoStructureResult();
+  const seedCells = getPetPhotoBoundarySeedCells(grid);
+  const clusters = buildPetPhotoBackgroundClusters(seedCells);
+  const floodBackground = collectPetPhotoFloodBackground(grid, clusters);
+  const drawableCount = drawableCells.length;
+  const componentsWithoutBackground = getPetPhotoComponents(grid, floodBackground);
+  const likelySubject = componentsWithoutBackground[0] ?? [];
+  const hasSafeSubject = likelySubject.length >= Math.max(8, Math.floor(drawableCount * 0.08));
+  const hasUsefulBackground = floodBackground.size >= Math.max(4, Math.floor(drawableCount * 0.05));
+  const wouldLeaveEnoughSubject = drawableCount === 0 ? false : likelySubject.length / drawableCount >= 0.08;
+  const wouldNotRemoveNearlyEverything = drawableCount === 0 ? false : floodBackground.size / drawableCount <= 0.86;
+
+  if (hasSafeSubject && hasUsefulBackground && wouldLeaveEnoughSubject && wouldNotRemoveNearlyEverything) {
+    markPetPhotoBackgroundCells(result, floodBackground);
+    removeIgnoredDrawableCells(drawableCells);
+  }
+
+  const subjectComponents = getPetPhotoComponents(grid);
+  const subjectCells = subjectComponents[0] ?? [];
+
+  if (subjectCells.length >= Math.max(8, Math.floor(drawableCells.length * 0.08))) {
+    markPetPhotoSubjectStructure(result, grid, subjectCells);
+  }
+
+  return result;
+}
+
 function demoteDarkLine(cell: WorkingCell) {
   cell.isDarkLine = false;
   const family = cell.rgb ? getHueFamily(cell.rgb) : null;
@@ -490,11 +882,15 @@ function demoteDarkLine(cell: WorkingCell) {
   cell.hueFamily = family === "dark" ? "neutral" : family;
 }
 
-function refineDarkLines(grid: WorkingCell[][], cells: WorkingCell[], strategy: GenerationStrategy) {
+function refineDarkLines(grid: WorkingCell[][], cells: WorkingCell[], strategy: GenerationStrategy, protectedCells = new Set<WorkingCell>()) {
   const darkLineCandidates = cells.filter((cell) => cell.isDarkLine && cell.rgb);
 
   for (const cell of darkLineCandidates) {
     if (!cell.rgb) {
+      continue;
+    }
+
+    if (protectedCells.has(cell)) {
       continue;
     }
 
@@ -524,6 +920,7 @@ function refineDarkLines(grid: WorkingCell[][], cells: WorkingCell[], strategy: 
   if (cells.length > 0 && darkLineCells.length / cells.length > maxDarkLineRatio) {
     const targetDarkLineCount = Math.floor(cells.length * strategy.targetDarkLineRatio);
     const cellsToDemote = darkLineCells
+      .filter((cell) => !protectedCells.has(cell))
       .map((cell) => {
         const boundary = getBoundaryInfo(grid, cell);
         const stats = cell.rgb ? colorStats(cell.rgb) : { brightness: 255, saturation: 0 };
@@ -649,7 +1046,12 @@ function assignQuantizedColors(cells: WorkingCell[], palette: BeadColor[], color
   }
 }
 
-function mergeSimilarRareColors(cells: WorkingCell[], totalBeads: number, strategy: GenerationStrategy) {
+function mergeSimilarRareColors(
+  cells: WorkingCell[],
+  totalBeads: number,
+  strategy: GenerationStrategy,
+  protectedCells = new Set<WorkingCell>(),
+) {
   let mergedSimilarColorCells = 0;
   let changed = true;
 
@@ -677,7 +1079,7 @@ function mergeSimilarRareColors(cells: WorkingCell[], totalBeads: number, strate
       let replacements = 0;
 
       for (const cell of cells) {
-        if (!cell.isDarkLine && cell.color?.id === small.color.id) {
+        if (!cell.isDarkLine && !protectedCells.has(cell) && cell.color?.id === small.color.id) {
           cell.color = target.color;
           replacements += 1;
         }
@@ -736,7 +1138,13 @@ function enforceColorLimit(cells: WorkingCell[], colorLimit: number) {
   return mergedCells;
 }
 
-function cleanRareNoiseColors(grid: WorkingCell[][], cells: WorkingCell[], totalBeads: number, strategy: GenerationStrategy) {
+function cleanRareNoiseColors(
+  grid: WorkingCell[][],
+  cells: WorkingCell[],
+  totalBeads: number,
+  strategy: GenerationStrategy,
+  protectedCells = new Set<WorkingCell>(),
+) {
   if (totalBeads === 0) {
     return 0;
   }
@@ -754,7 +1162,7 @@ function cleanRareNoiseColors(grid: WorkingCell[][], cells: WorkingCell[], total
   }
 
   for (const cell of cells) {
-    if (cell.isDarkLine || !cell.color || !rareColorIds.has(cell.color.id)) {
+    if (cell.isDarkLine || protectedCells.has(cell) || !cell.color || !rareColorIds.has(cell.color.id)) {
       continue;
     }
 
@@ -769,11 +1177,11 @@ function cleanRareNoiseColors(grid: WorkingCell[][], cells: WorkingCell[], total
   return cleanedNoiseCells;
 }
 
-function smoothIsolatedCells(grid: WorkingCell[][], cells: WorkingCell[], strategy: GenerationStrategy) {
+function smoothIsolatedCells(grid: WorkingCell[][], cells: WorkingCell[], strategy: GenerationStrategy, protectedCells = new Set<WorkingCell>()) {
   let smoothedCells = 0;
 
   for (const cell of cells) {
-    if (cell.isDarkLine || !cell.color) {
+    if (cell.isDarkLine || protectedCells.has(cell) || !cell.color) {
       continue;
     }
 
@@ -1046,9 +1454,15 @@ export function generatePattern(imageData: ImageData, options: GeneratePatternOp
       return workingCell;
     }),
   );
+  const shouldApplyPetPhotoStructureWeighting = mode === "pet-photo" && ignoreWhiteBackground && shouldTrimWhiteBackground;
+  const petPhotoStructure = shouldApplyPetPhotoStructureWeighting
+    ? applyPetPhotoFinalGridStructureWeighting(grid, drawableCells)
+    : createPetPhotoStructureResult();
+
+  ignoredBackgroundCells += petPhotoStructure.ignoredBackgroundCells;
 
   const darkLineStats = strategy.darkLineProtection
-    ? refineDarkLines(grid, drawableCells, strategy)
+    ? refineDarkLines(grid, drawableCells, strategy, petPhotoStructure.protectedCells)
     : {
         darkLineCount: drawableCells.filter((cell) => cell.isDarkLine).length,
         darkLineRatio: drawableCells.length > 0 ? drawableCells.filter((cell) => cell.isDarkLine).length / drawableCells.length : 0,
@@ -1056,10 +1470,11 @@ export function generatePattern(imageData: ImageData, options: GeneratePatternOp
 
   assignQuantizedColors(drawableCells, palette, colorLimit, strategy);
 
-  const cleanedNoiseCells = cleanRareNoiseColors(grid, drawableCells, drawableCells.length, strategy);
-  const smoothedCells = smoothIsolatedCells(grid, drawableCells, strategy);
+  const cleanedNoiseCells = cleanRareNoiseColors(grid, drawableCells, drawableCells.length, strategy, petPhotoStructure.protectedCells);
+  const smoothedCells = smoothIsolatedCells(grid, drawableCells, strategy, petPhotoStructure.protectedCells);
   const mergedSimilarColorCells =
-    mergeSimilarRareColors(drawableCells, drawableCells.length, strategy) + enforceColorLimit(drawableCells, colorLimit);
+    mergeSimilarRareColors(drawableCells, drawableCells.length, strategy, petPhotoStructure.protectedCells) +
+    enforceColorLimit(drawableCells, colorLimit);
   const finalCounts = countColors(drawableCells);
   const colorCounts = Array.from(finalCounts.values()).sort((a, b) => b.count - a.count || a.color.id.localeCompare(b.color.id));
 

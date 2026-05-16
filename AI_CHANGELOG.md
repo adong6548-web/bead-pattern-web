@@ -7,6 +7,33 @@
 
 ---
 
+## 2026-05-16 / Phase 4B / 宠物照片 final-grid 结构权重
+- 修改内容：在 `pet-photo` 且启用白底忽略 / 白底裁剪时，于最终 bead grid 建立后、暗线 refinement / 量化 / 清理前加入结构权重步骤，优先让浅色猫狗主体从木地板、深色包/家具、绿棕室内背景和浅背景中更清楚地分离出来
+- 修改文件：
+  - `src/engine/generatePattern.ts`
+  - `AI_CHANGELOG.md`
+- 关键行为：
+  - 新增仅内部使用的宠物照片 cell role：`background`、`subject-fill`、`contour`、`key-detail`、`fur-texture`
+  - 从最终 grid 边界 cell 建立背景色簇，并从边界 flood-fill 连通且颜色相容的背景区域
+  - 在安全阈值满足时，把 confident background cell 标记为 ignored background，并从 `drawableCells` / 颜色统计参与中移除
+  - 从非背景 cell 中选取最大主体连通块，标记主体填充与主体/背景边界 contour
+  - 识别主体内部小型深色五官细节与偏红口腔/舌头候选，保护其不被 rare cleanup、isolated smoothing、similar rare color merge 清掉
+  - 将浅色 / 白色毛发简化为 white / light / mid / shadow 四个中性 tonal band，减少随机灰棕噪点
+  - contour / key-detail 也会保护暗线 refinement，避免刚识别出的结构被降级
+- 有意不改：
+  - PNG 导出逻辑与 `exportPatternImage.ts`
+  - autosave schema / storage model / `PatternResult` shape / grid cell shape / `colorCounts` shape
+  - UI、FocusMode、离线 shell、Service Worker、manifest
+  - pixel-art、illustration、anime-lineart、portrait-photo 行为
+  - smart recommendation、依赖、后端、AI API、PDF、cloud sync、IndexedDB、Web Worker
+- 测试建议：
+  - 对同一张白/浅色狗猫照片，使用 `pet-photo`、启用白底忽略与裁剪，对比木地板、深色家具/包、绿棕室内背景、浅背景下背景珠减少、轮廓可读性、眼鼻嘴舌稳定性和白毛 tonal band
+  - 用 pixel-art / illustration / anime-lineart / portrait-photo 各跑一张非回归样例，确认模式外观未变
+  - 导出 PNG 并刷新恢复本地草稿，确认导出与 autosave 消费的结果结构兼容
+- 风险：中（final-grid 启发式无法真正语义分割，主体贴边或背景与毛色极近时可能保守跳过背景移除，或误把部分相似背景保留）
+- 是否影响 engine：是，仅 `pet-photo` 且 `ignoreWhiteBackground` / `trimWhiteBackground` 都启用时
+- 是否影响导出：否
+
 ## 2026-05-14 / Phase 4A / 图像生成质量基线与手动 QA 清单
 - 修改内容：新增 `QUALITY_BASELINE.md`，记录当前图片到拼豆图纸生成管线、已知质量瓶颈、固定手动测试图片类别、视觉质量检查项、非回归清单、前后对比协议和下一步 Phase 4B 建议
 - 修改文件：
