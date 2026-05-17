@@ -7,6 +7,23 @@
 
 ---
 
+## 2026-05-17 / Phase 4D-3 / common vs MARD 221 内部对比工具
+- 修改内容：新增内部 comparison script，可在不改默认行为、不加 UI 的前提下，对同一份本地 imageData 输入分别跑 common palette 与 MARD 221 palette，并输出紧凑对比摘要
+- 修改文件：
+  - `scripts/comparePalettes.ts`
+  - `AI_CHANGELOG.md`
+- 关键行为：
+  - 脚本复用现有 `getInternalTestPaletteColors("common" | "mard221")` 与 `generatePattern(..., { palette })`
+  - 输入为本地序列化 imageData JSON，不依赖运行时外部网站或新增图片解码依赖
+  - 输出包括 palette id、尺寸、mode、colorLimit、usedColorCount、totalBeads、top colors，以及是否使用真实 MARD code
+  - 默认 common palette 行为保持不变，仅用于内部 QA 对比
+- 有意不改：
+  - UI、PNG 导出、autosave、offline/PWA、默认 palette 选择行为、pet-photo pruning WIP
+  - 当前仍沿用现有 RGB 距离匹配，后续再评估 CIEDE2000/LAB
+- 风险：低（纯内部工具；真实图片文件解码仍需后续单独方案或浏览器侧导出 imageData）
+- 是否影响 engine：否（不改默认生成行为）
+- 是否影响导出：否
+
 ## 2026-05-17 / Phase 4D-2 / MARD 221 内部匹配测试路径
 - 修改内容：在不改默认生成行为、不加 UI 的前提下，给本地 MARD 221 色库增加内部 palette matching 测试入口，便于对比 common palette 与 MARD 221 的匹配结果
 - 修改文件：
