@@ -31,7 +31,13 @@ export type BeadColorFamily =
   | "neutral"
   | "other";
 
-export type BeadPaletteSource = "built-in" | "verified-brand" | "user-owned" | "cross-brand-substitute" | "sample";
+export type BeadPaletteSource =
+  | "built-in"
+  | "verified-brand"
+  | "user-owned"
+  | "cross-brand-substitute"
+  | "sample"
+  | "reference-page";
 
 export type BeadColorAvailability = "available" | "limited" | "retired" | "unknown";
 

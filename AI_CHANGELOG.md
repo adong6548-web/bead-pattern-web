@@ -7,6 +7,28 @@
 
 ---
 
+## 2026-05-17 / Phase 4D-1 / MARD 本地色库导入草稿
+- 修改内容：新增本地 MARD 221 色库导入流程与校验脚本，从公开色卡页面提取基础事实字段生成本地 source-of-truth 数据与运行时 palette 草稿；外部页面仅作为采集来源，应用运行时只使用本地数据，不改算法与 UI
+- 修改文件：
+  - `data/palettes/mard221.csv`
+  - `data/palettes/mard221.sources.md`
+  - `scripts/importMardPalette.ts`
+  - `scripts/validatePaletteData.ts`
+  - `src/palettes/generated/mard221.ts`
+  - `src/palettes/index.ts`
+  - `src/types/pattern.ts`
+  - `AI_CHANGELOG.md`
+- 关键行为：
+  - 导入脚本仅请求指定公开 URL，解析品牌 / 色号 / HEX / RGB 等事实字段，输出本地 CSV 与生成用 TS palette 草稿
+  - 校验脚本检查 code 去重、HEX 格式、RGB/HEX 一致性、source_url / confidence 非空，并输出总颜色数与异常列表
+  - MARD 221 已注册到 palette registry，但默认仍保持 `commonPalette`，不改变当前生成结果
+  - `confidence` 初始为 `medium`，后续可通过实体色卡或人工校准提升
+- 有意不改：
+  - `generatePattern` 主算法、palette matching、UI、PNG 导出、autosave schema、offline/PWA、`PatternResult` shape、非 photo 模式
+- 风险：低到中（数据来源于公开参考页而非运行时直连；后续仍需人工/实体色卡校准来提升色值可信度）
+- 是否影响 engine：否
+- 是否影响导出：否
+
 ## 2026-05-17 / Phase 4D-0 / Palette-first 色卡架构基础
 - 修改内容：为后续接入真实拼豆色库（如品牌官方色卡、用户自有子集、跨品牌替代色卡）先打底，补充 palette-first 数据模型与内置色卡注册层，同时保持当前 common palette 与现有生成/导出/存档兼容
 - 修改文件：
