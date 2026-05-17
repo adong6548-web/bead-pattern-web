@@ -7,6 +7,23 @@
 
 ---
 
+## 2026-05-17 / Phase 4D-2 / MARD 221 内部匹配测试路径
+- 修改内容：在不改默认生成行为、不加 UI 的前提下，给本地 MARD 221 色库增加内部 palette matching 测试入口，便于对比 common palette 与 MARD 221 的匹配结果
+- 修改文件：
+  - `src/palettes/index.ts`
+  - `AI_CHANGELOG.md`
+- 关键行为：
+  - 新增内部测试 helper，可显式解析 `common` 或 `mard221` 内置 palette 并取出 colors 传给 `generatePattern`
+  - 默认 `defaultPaletteDefinition` 仍保持 `commonPaletteDefinition`
+  - 应用运行时不请求任何外部页面，MARD 仅使用本地生成数据
+  - 不改 UI、PNG 导出、autosave schema、offline/PWA，也不改 pet-photo pruning WIP
+- 有意不改：
+  - `generatePattern` 默认路径、palette selector UI、真实产品级 palette 选择交互
+  - 当前仍沿用现有 RGB 距离匹配，后续再评估 CIEDE2000/LAB 匹配
+- 风险：低（仅增加内部测试入口，不改默认结果）
+- 是否影响 engine：否（不改默认生成行为）
+- 是否影响导出：否
+
 ## 2026-05-17 / Phase 4D-1 / MARD 本地色库导入草稿
 - 修改内容：新增本地 MARD 221 色库导入流程与校验脚本，从公开色卡页面提取基础事实字段生成本地 source-of-truth 数据与运行时 palette 草稿；外部页面仅作为采集来源，应用运行时只使用本地数据，不改算法与 UI
 - 修改文件：
