@@ -7,20 +7,22 @@
 
 ---
 
-## 2026-05-17 / Phase 4D-3 / common vs MARD 221 内部对比工具
-- 修改内容：新增内部 comparison script，可在不改默认行为、不加 UI 的前提下，对同一份本地 imageData 输入分别跑 common palette 与 MARD 221 palette，并输出紧凑对比摘要
+## 2026-05-17 / Phase 4D-4 / real image common vs MARD 221 内部对比辅助
+- 修改内容：在已有内部 comparison script 基础上，新增本地真实图片文件输入路径，可直接对 PNG / JPG 等本地图片分别跑 common palette 与 MARD 221 palette，对比真实图的落地匹配摘要
 - 修改文件：
   - `scripts/comparePalettes.ts`
   - `AI_CHANGELOG.md`
 - 关键行为：
-  - 脚本复用现有 `getInternalTestPaletteColors("common" | "mard221")` 与 `generatePattern(..., { palette })`
-  - 输入为本地序列化 imageData JSON，不依赖运行时外部网站或新增图片解码依赖
+  - 脚本继续复用现有 `getInternalTestPaletteColors("common" | "mard221")` 与 `generatePattern(..., { palette })`
+  - 保留原有 `--image-data` JSON 输入，同时新增 `--image /path/to/file.png|jpg|...` 本地图片路径
+  - 本地图片通过 macOS 自带 `sips` 转临时 BMP，再在脚本内解析为 ImageData-compatible RGBA，不新增包依赖、不请求外部网站
   - 输出包括 palette id、尺寸、mode、colorLimit、usedColorCount、totalBeads、top colors，以及是否使用真实 MARD code
+  - 默认输出还会写入 `/tmp/bead-pattern-palette-comparison.json`，也支持 `--output`
   - 默认 common palette 行为保持不变，仅用于内部 QA 对比
 - 有意不改：
   - UI、PNG 导出、autosave、offline/PWA、默认 palette 选择行为、pet-photo pruning WIP
   - 当前仍沿用现有 RGB 距离匹配，后续再评估 CIEDE2000/LAB
-- 风险：低（纯内部工具；真实图片文件解码仍需后续单独方案或浏览器侧导出 imageData）
+- 风险：低到中（纯内部工具；真实图片输入当前依赖 macOS 自带 `sips`，跨平台解码方案仍可后续再抽象）
 - 是否影响 engine：否（不改默认生成行为）
 - 是否影响导出：否
 
