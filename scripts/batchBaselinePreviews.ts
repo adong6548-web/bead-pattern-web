@@ -44,6 +44,7 @@ type GeneratePatternFn = (
 type CliOptions = {
   baselineDir: string;
   inputDir: string;
+  modeComparison: boolean;
   outputDir: string;
 };
 
@@ -90,6 +91,13 @@ const TEST_IMAGES: TestImage[] = [
   { filename: "pet-warm-on-warm-background.jpg", required: false, modes: ["pet-photo"] },
   { filename: "non-pet-portrait-control.jpg", required: false, modes: ["portrait-photo", "pet-photo"] },
 ];
+const MODE_COMPARISON_TEST_IMAGES: TestImage[] = [
+  { filename: "pet-light-on-busy-background.jpg", required: true, modes: ["pet-photo", "pixel-art", "illustration"] },
+  { filename: "pet-dark-on-dark-background.jpg", required: true, modes: ["pet-photo", "pixel-art", "illustration"] },
+  { filename: "pet-clean-background-control.jpg", required: true, modes: ["pet-photo", "pixel-art", "illustration"] },
+  { filename: "pet-warm-on-warm-background.jpg", required: false, modes: ["pet-photo", "pixel-art", "illustration"] },
+  { filename: "non-pet-portrait-control.jpg", required: false, modes: ["portrait-photo", "pet-photo", "pixel-art"] },
+];
 
 const jiti = createJiti(import.meta.url, {
   alias: {
@@ -101,6 +109,7 @@ const jiti = createJiti(import.meta.url, {
 function parseArgs(argv: string[]): CliOptions {
   let baselineDir = "";
   let inputDir = DEFAULT_INPUT_DIR;
+  let modeComparison = false;
   let outputDir = DEFAULT_OUTPUT_DIR;
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -116,6 +125,9 @@ function parseArgs(argv: string[]): CliOptions {
         inputDir = next ?? "";
         index += 1;
         break;
+      case "--mode-comparison":
+        modeComparison = true;
+        break;
       case "--output-dir":
         outputDir = next ?? "";
         index += 1;
@@ -127,6 +139,7 @@ function parseArgs(argv: string[]): CliOptions {
 Options:
   --baseline-dir <path> Baseline output folder to copy as before-* artifacts
   --input-dir <path>    Test image folder (default: ${DEFAULT_INPUT_DIR})
+  --mode-comparison      Run pet-photo / pixel-art / illustration comparison for pet images
   --output-dir <path>   Output folder (default: ${DEFAULT_OUTPUT_DIR})
 `);
         process.exit(0);
@@ -141,6 +154,7 @@ Options:
   return {
     baselineDir: baselineDir ? path.resolve(baselineDir) : "",
     inputDir: path.resolve(inputDir),
+    modeComparison,
     outputDir: path.resolve(outputDir),
   };
 }
@@ -482,14 +496,15 @@ async function main() {
     throw new Error(`Missing input directory: ${options.inputDir}`);
   }
 
-  const missingRequired = TEST_IMAGES.filter((image) => image.required && !fs.existsSync(path.join(options.inputDir, image.filename))).map(
+  const testImages = options.modeComparison ? MODE_COMPARISON_TEST_IMAGES : TEST_IMAGES;
+  const missingRequired = testImages.filter((image) => image.required && !fs.existsSync(path.join(options.inputDir, image.filename))).map(
     (image) => image.filename,
   );
   if (missingRequired.length > 0) {
     throw new Error(`Missing required test images:\n${missingRequired.map((filename) => `- ${filename}`).join("\n")}`);
   }
 
-  const missingOptional = TEST_IMAGES.filter((image) => !image.required && !fs.existsSync(path.join(options.inputDir, image.filename))).map(
+  const missingOptional = testImages.filter((image) => !image.required && !fs.existsSync(path.join(options.inputDir, image.filename))).map(
     (image) => image.filename,
   );
 
@@ -497,7 +512,7 @@ async function main() {
   const generatePattern = await loadGeneratePattern();
   const allSummaries = new Map<string, CaseSummary[]>();
 
-  for (const testImage of TEST_IMAGES) {
+  for (const testImage of testImages) {
     const sourceImagePath = path.join(options.inputDir, testImage.filename);
     if (!fs.existsSync(sourceImagePath)) {
       continue;
