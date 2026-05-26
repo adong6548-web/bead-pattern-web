@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_PATTERN_COLOR_STYLE, DEFAULT_PATTERN_MODE, getDefaultColorLimitForMode } from "@/config/patternPresets";
 import { generatePattern } from "@/engine/generatePattern";
 import { recommendPatternPlans } from "@/engine/recommendPatternSizes";
-import type { PatternColorStyle, PatternMode, PatternVariant } from "@/types/pattern";
+import type { PatternColorStyle, PatternMode, PatternResult, PatternVariant } from "@/types/pattern";
 import { imageFileToSafeImageData, validateImageFile } from "@/utils/imageProcessing";
+import { setPatternColorAsIgnoredBackground } from "@/utils/patternEditing";
 import {
   clearExportDraft,
   clearSessionDraft,
@@ -30,6 +31,11 @@ import { PatternVariantCards } from "./PatternVariantCards";
 
 const SAVE_DEBOUNCE_MS = 350;
 
+type EditedPatternState = {
+  pattern: PatternResult;
+  sourcePattern: PatternResult;
+};
+
 export function PatternTool() {
   const uploadRequestIdRef = useRef(0);
   const isMountedRef = useRef(true);
@@ -45,6 +51,7 @@ export function PatternTool() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [restoredVariant, setRestoredVariant] = useState<PatternVariant | null>(null);
+  const [editedPattern, setEditedPattern] = useState<EditedPatternState | null>(null);
   const [exportDraft, setExportDraft] = useState<PersistedExportSettings | null>(null);
   const [initialExportDraft, setInitialExportDraft] = useState<PersistedExportSettings | null>(null);
   const [pendingRestore, setPendingRestore] = useState<{
@@ -94,6 +101,8 @@ export function PatternTool() {
     availableVariants[0] ??
     null;
   const pattern = selectedVariant?.pattern ?? null;
+  const displayedPattern = editedPattern?.sourcePattern === pattern ? editedPattern.pattern : pattern;
+  const hasEditedPattern = editedPattern?.sourcePattern === pattern;
   const isRestoredSnapshotOnly = imageData === null && restoredVariant !== null && variants.length === 0;
 
   useEffect(() => {
@@ -265,6 +274,21 @@ export function PatternTool() {
     setPendingRestore(null);
   }
 
+  function handleSetColorAsBackground(colorId: string) {
+    if (!pattern) {
+      return;
+    }
+
+    setEditedPattern((current) => ({
+      pattern: setPatternColorAsIgnoredBackground(current?.sourcePattern === pattern ? current.pattern : pattern, colorId),
+      sourcePattern: pattern,
+    }));
+  }
+
+  function handleResetEditedPattern() {
+    setEditedPattern(null);
+  }
+
   return (
     <main className="min-h-screen overflow-x-hidden">
       <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
@@ -348,7 +372,7 @@ export function PatternTool() {
               onIgnoreWhiteBackgroundChange={setIgnoreWhiteBackground}
             />
 
-            <AspectRatioNotice pattern={pattern} />
+            <AspectRatioNotice pattern={displayedPattern} />
 
             <PatternVariantCards
               selectedVariantId={resolvedSelectedVariantId}
@@ -358,9 +382,14 @@ export function PatternTool() {
           </aside>
 
           <section className="flex min-w-0 flex-col gap-4">
-            <PatternGrid key={pattern ? `${pattern.width}x${pattern.height}` : "empty-pattern"} pattern={pattern} />
-            {pattern ? <PatternExportPanel initialDraft={initialExportDraft} pattern={pattern} onDraftChange={setExportDraft} /> : null}
-            <ColorStats pattern={pattern} />
+            <PatternGrid key={displayedPattern ? `${displayedPattern.width}x${displayedPattern.height}` : "empty-pattern"} pattern={displayedPattern} />
+            {displayedPattern ? <PatternExportPanel initialDraft={initialExportDraft} pattern={displayedPattern} onDraftChange={setExportDraft} /> : null}
+            <ColorStats
+              canResetPattern={hasEditedPattern}
+              pattern={displayedPattern}
+              onResetPattern={handleResetEditedPattern}
+              onSetColorAsBackground={handleSetColorAsBackground}
+            />
           </section>
         </div>
       </div>

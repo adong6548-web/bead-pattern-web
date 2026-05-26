@@ -2,10 +2,13 @@ import { getColorStyleLabel, getPatternModeLabel } from "@/config/patternPresets
 import type { PatternResult } from "@/types/pattern";
 
 type ColorStatsProps = {
+  canResetPattern?: boolean;
+  onResetPattern?: () => void;
+  onSetColorAsBackground?: (colorId: string) => void;
   pattern: PatternResult | null;
 };
 
-export function ColorStats({ pattern }: ColorStatsProps) {
+export function ColorStats({ canResetPattern = false, onResetPattern, onSetColorAsBackground, pattern }: ColorStatsProps) {
   return (
     <section className="min-w-0 rounded-2xl border border-stone-200 bg-white/85 p-4 shadow-sm">
       <div className="mb-3 flex min-w-0 flex-wrap items-end justify-between gap-3">
@@ -15,6 +18,15 @@ export function ColorStats({ pattern }: ColorStatsProps) {
             {pattern ? `common 色卡 · ${getPatternModeLabel(pattern.mode)} · ${getColorStyleLabel(pattern.colorStyle)}` : "色号来自 common 色卡。"}
           </p>
         </div>
+        {pattern && canResetPattern && onResetPattern ? (
+          <button
+            className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm font-semibold text-ink/70 transition hover:bg-white"
+            type="button"
+            onClick={onResetPattern}
+          >
+            恢复原图纸
+          </button>
+        ) : null}
       </div>
 
       {pattern ? (
@@ -38,10 +50,16 @@ export function ColorStats({ pattern }: ColorStatsProps) {
             </div>
           </div>
 
+          {onSetColorAsBackground ? (
+            <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+              设为背景会全局移除该色所有格，可能影响眼睛、鼻子、嘴巴或轮廓细节。
+            </p>
+          ) : null}
+
           <div className="flex min-w-0 flex-col gap-2">
             {pattern.colorCounts.map(({ color, count }) => (
               <div
-                className="flex min-w-0 items-center gap-3 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm"
+                className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm"
                 key={color.id}
               >
                 <span
@@ -53,6 +71,15 @@ export function ColorStats({ pattern }: ColorStatsProps) {
                 </div>
                 <span className="shrink-0 rounded-full bg-stone-100 px-2 py-1 font-mono text-xs text-ink/70">{color.id}</span>
                 <span className="shrink-0 text-right font-semibold tabular-nums text-ink">{count}</span>
+                {onSetColorAsBackground ? (
+                  <button
+                    className="ml-auto shrink-0 rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-1.5 text-xs font-semibold text-ink/70 transition hover:bg-white"
+                    type="button"
+                    onClick={() => onSetColorAsBackground(color.id)}
+                  >
+                    设为背景
+                  </button>
+                ) : null}
               </div>
             ))}
           </div>
