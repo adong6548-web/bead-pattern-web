@@ -6,7 +6,7 @@ import { generatePattern } from "@/engine/generatePattern";
 import { recommendPatternPlans } from "@/engine/recommendPatternSizes";
 import type { PatternColorStyle, PatternMode, PatternResult, PatternVariant } from "@/types/pattern";
 import { imageFileToSafeImageData, validateImageFile } from "@/utils/imageProcessing";
-import { setPatternColorAsIgnoredBackground } from "@/utils/patternEditing";
+import { mergePatternColorIntoColor, setPatternColorAsIgnoredBackground } from "@/utils/patternEditing";
 import {
   clearExportDraft,
   clearSessionDraft,
@@ -285,6 +285,17 @@ export function PatternTool() {
     }));
   }
 
+  function handleMergeColor(sourceColorId: string, targetColorId: string) {
+    if (!pattern || sourceColorId === targetColorId) {
+      return;
+    }
+
+    setEditedPattern((current) => ({
+      pattern: mergePatternColorIntoColor(current?.sourcePattern === pattern ? current.pattern : pattern, sourceColorId, targetColorId),
+      sourcePattern: pattern,
+    }));
+  }
+
   function handleResetEditedPattern() {
     setEditedPattern(null);
   }
@@ -388,6 +399,7 @@ export function PatternTool() {
               canResetPattern={hasEditedPattern}
               pattern={displayedPattern}
               onResetPattern={handleResetEditedPattern}
+              onMergeColor={handleMergeColor}
               onSetColorAsBackground={handleSetColorAsBackground}
             />
           </section>

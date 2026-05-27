@@ -1,5 +1,39 @@
 import type { BeadCell, ColorCount, PatternResult } from "@/types/pattern";
 
+export function mergePatternColorIntoColor(pattern: PatternResult, sourceColorId: string, targetColorId: string): PatternResult {
+  if (sourceColorId === targetColorId) {
+    return pattern;
+  }
+
+  const targetColor = pattern.colorCounts.find(({ color }) => color.id === targetColorId)?.color;
+  if (!targetColor) {
+    return pattern;
+  }
+
+  const hasSourceColor = pattern.colorCounts.some(({ color }) => color.id === sourceColorId);
+  if (!hasSourceColor) {
+    return pattern;
+  }
+
+  const grid = pattern.grid.map((row) =>
+    row.map((cell): BeadCell => {
+      if (cell.isIgnoredBackground || cell.color?.id !== sourceColorId) {
+        return { ...cell };
+      }
+
+      return {
+        ...cell,
+        color: targetColor,
+      };
+    }),
+  );
+
+  return recalculatePatternCounts({
+    ...pattern,
+    grid,
+  });
+}
+
 export function setPatternColorAsIgnoredBackground(pattern: PatternResult, colorId: string): PatternResult {
   const grid = pattern.grid.map((row) =>
     row.map((cell): BeadCell => {
