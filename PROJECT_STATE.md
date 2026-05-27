@@ -22,6 +22,7 @@
 - 导出设置增强
 - 图像类型 / 颜色数量 / 颜色风格设置
 - 参数配置化基础（`patternPresets.ts`）
+- 生成后清理 MVP：可将选中的颜色全局设为 ignored background，预览、材料统计和 PNG 导出使用编辑后的图纸，且可重置回原始生成结果
 
 ## 当前暂停功能
 - FocusMode：代码保留，入口隐藏，暂不继续推进
@@ -36,7 +37,7 @@
 - 复杂拖拽查看
 - 库存管理
 - 社区功能
-- 编辑模式 / 画笔 / 橡皮
+- 完整编辑器 / 画笔 / 橡皮
 
 ## 当前主要风险
 1. `src_backup_before_bead_mvp` 是旧备份目录，容易误导 AI，不应作为当前主代码入口。
@@ -45,18 +46,25 @@
 4. `patternPresets.ts` 通过 type import 引用了 `exportPatternImage.ts` 的类型；长期看应把共享导出类型沉到 `src/types`。
 5. Tailwind 4 曾因配置写法问题导致页面退回默认 HTML 样式，这类问题以后仍可能复发。
 6. `generatePattern.ts` 已经较长，后续继续加模式或策略时，维护复杂度会上升。
+7. 宠物照片自动算法已多轮验证未达到稳定质量，后续不应继续单图启发式调参或把已停止的实验路线接入引擎。
+
+## 近期阶段状态
+- 当前稳定提交：`99facd5 feat: allow setting pattern color as background`
+- Phase 4J 已停止本地 pet-photo 启发式路线：subject mask / framing、cell-only hybrid sampling、pre-quantization value separation、region-map detail/noise route 均已停止，Phase 4J-8 engine integration 不成立。
+- Phase 4K 当前方向：从“自动生成完美宠物图”转为“自动初稿 + 用户可控修整”的产品级清理流。
+- Phase 4K-1 已完成：用户可在颜色 / 材料列表中将选中颜色设为 ignored background；可编辑图纸状态与原始生成结果分离；预览、材料统计和导出使用编辑后的 grid；reset 可恢复原始生成结果；手动 QA 已通过，导出 PNG 反映编辑后的图纸。
 
 ## 当前下一步路线
-1. 稳定可测试版
-2. 参数配置化 / 小程序复用准备
-3. 智能推荐 + 高级设置折叠
-4. 颜色算法专项优化
+1. Phase 4K-2：合并选中颜色到另一个颜色，延续产品级清理流
+2. 保持 `generatePattern` 稳定，暂不继续宠物照片启发式算法调参
+3. 后续再评估 AI / 像素化预处理增强路径，不与 4K 混做
 
 ## MVP 稳定性目标
 - 页面在断网环境也可继续本地生成图纸
 - 刷新后尽量保留用户当前工作状态
 - 图片处理过程中不崩溃、不长时间卡死
 - 图纸预览、导出、颜色统计始终围绕同一份 `PatternResult`
+- 生成后编辑必须保持预览、材料统计、导出结果一致
 
 ## 智能推荐目标
 后续的智能推荐应该做两件事：
@@ -72,7 +80,7 @@
 - 减少脏色和误判色
 - 宠物 / 真人图的专门策略
 
-当前仍以“先稳定，再优化算法”为主。
+当前宠物照片算法路线已暂停继续启发式调参，优先推进可验证的产品级清理能力。
 
 ## 小程序复用考虑
 后续小程序优先复用：
