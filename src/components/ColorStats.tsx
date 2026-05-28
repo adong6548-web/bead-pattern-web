@@ -6,13 +6,23 @@ import type { PatternResult } from "@/types/pattern";
 
 type ColorStatsProps = {
   canResetPattern?: boolean;
+  canUndoPattern?: boolean;
   onMergeColor?: (sourceColorId: string, targetColorId: string) => void;
   onResetPattern?: () => void;
   onSetColorAsBackground?: (colorId: string) => void;
+  onUndoPattern?: () => void;
   pattern: PatternResult | null;
 };
 
-export function ColorStats({ canResetPattern = false, onMergeColor, onResetPattern, onSetColorAsBackground, pattern }: ColorStatsProps) {
+export function ColorStats({
+  canResetPattern = false,
+  canUndoPattern = false,
+  onMergeColor,
+  onResetPattern,
+  onSetColorAsBackground,
+  onUndoPattern,
+  pattern,
+}: ColorStatsProps) {
   const [mergeSourceColorId, setMergeSourceColorId] = useState<string | null>(null);
   const [mergeTargetColorId, setMergeTargetColorId] = useState("");
   const canMergeColors = Boolean(onMergeColor && pattern && pattern.colorCounts.length > 1);
@@ -50,14 +60,27 @@ export function ColorStats({ canResetPattern = false, onMergeColor, onResetPatte
             {pattern ? `common 色卡 · ${getPatternModeLabel(pattern.mode)} · ${getColorStyleLabel(pattern.colorStyle)}` : "色号来自 common 色卡。"}
           </p>
         </div>
-        {pattern && canResetPattern && onResetPattern ? (
-          <button
-            className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm font-semibold text-ink/70 transition hover:bg-white"
-            type="button"
-            onClick={onResetPattern}
-          >
-            恢复原图纸
-          </button>
+        {pattern && (canUndoPattern || canResetPattern) ? (
+          <div className="flex flex-wrap gap-2">
+            {canUndoPattern && onUndoPattern ? (
+              <button
+                className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm font-semibold text-ink/70 transition hover:bg-white"
+                type="button"
+                onClick={onUndoPattern}
+              >
+                撤销上一步
+              </button>
+            ) : null}
+            {canResetPattern && onResetPattern ? (
+              <button
+                className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm font-semibold text-ink/70 transition hover:bg-white"
+                type="button"
+                onClick={onResetPattern}
+              >
+                恢复原图纸
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </div>
 

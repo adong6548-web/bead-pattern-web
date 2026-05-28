@@ -52,6 +52,7 @@ export function PatternTool() {
   const [notice, setNotice] = useState<string | null>(null);
   const [restoredVariant, setRestoredVariant] = useState<PatternVariant | null>(null);
   const [editedPattern, setEditedPattern] = useState<EditedPatternState | null>(null);
+  const [editHistory, setEditHistory] = useState<PatternResult[]>([]);
   const [exportDraft, setExportDraft] = useState<PersistedExportSettings | null>(null);
   const [initialExportDraft, setInitialExportDraft] = useState<PersistedExportSettings | null>(null);
   const [pendingRestore, setPendingRestore] = useState<{
@@ -103,6 +104,7 @@ export function PatternTool() {
   const pattern = selectedVariant?.pattern ?? null;
   const displayedPattern = editedPattern?.sourcePattern === pattern ? editedPattern.pattern : pattern;
   const hasEditedPattern = editedPattern?.sourcePattern === pattern;
+  const canUndoEdit = hasEditedPattern && editHistory.length > 0;
   const isRestoredSnapshotOnly = imageData === null && restoredVariant !== null && variants.length === 0;
 
   useEffect(() => {
@@ -219,6 +221,8 @@ export function PatternTool() {
       setSelectedVariantId(null);
       setImageData(nextImage.imageData);
       setRestoredVariant(null);
+      setEditedPattern(null);
+      setEditHistory([]);
       setPendingRestore(null);
       setInitialExportDraft(null);
       setError(null);
@@ -240,6 +244,27 @@ export function PatternTool() {
   function handlePatternModeChange(nextMode: PatternMode) {
     setPatternMode(nextMode);
     setColorLimit(getDefaultColorLimitForMode(nextMode));
+    clearEditedPatternState();
+  }
+
+  function handleColorLimitChange(nextColorLimit: number) {
+    setColorLimit(nextColorLimit);
+    clearEditedPatternState();
+  }
+
+  function handleColorStyleChange(nextColorStyle: PatternColorStyle) {
+    setColorStyle(nextColorStyle);
+    clearEditedPatternState();
+  }
+
+  function handleIgnoreWhiteBackgroundChange(nextIgnoreWhiteBackground: boolean) {
+    setIgnoreWhiteBackground(nextIgnoreWhiteBackground);
+    clearEditedPatternState();
+  }
+
+  function handleSelectVariant(nextVariantId: string) {
+    setSelectedVariantId(nextVariantId);
+    clearEditedPatternState();
   }
 
   function handleRestoreDraft() {
@@ -263,6 +288,8 @@ export function PatternTool() {
     setError(null);
     setNotice(null);
     setRestoredVariant(pendingRestore.restoredVariant);
+    setEditedPattern(null);
+    setEditHistory([]);
     setExportDraft(pendingRestore.exportDraft?.settings ?? null);
     setInitialExportDraft(pendingRestore.exportDraft?.settings ?? null);
     setPendingRestore(null);
@@ -274,30 +301,53 @@ export function PatternTool() {
     setPendingRestore(null);
   }
 
+  function clearEditedPatternState() {
+    setEditedPattern(null);
+    setEditHistory([]);
+  }
+
   function handleSetColorAsBackground(colorId: string) {
+    applyPatternEdit((currentPattern) => setPatternColorAsIgnoredBackground(currentPattern, colorId));
+  }
+
+  function handleMergeColor(sourceColorId: string, targetColorId: string) {
+    if (sourceColorId === targetColorId) {
+      return;
+    }
+
+    applyPatternEdit((currentPattern) => mergePatternColorIntoColor(currentPattern, sourceColorId, targetColorId));
+  }
+
+  function applyPatternEdit(editPattern: (currentPattern: PatternResult) => PatternResult) {
     if (!pattern) {
       return;
     }
 
-    setEditedPattern((current) => ({
-      pattern: setPatternColorAsIgnoredBackground(current?.sourcePattern === pattern ? current.pattern : pattern, colorId),
-      sourcePattern: pattern,
-    }));
-  }
-
-  function handleMergeColor(sourceColorId: string, targetColorId: string) {
-    if (!pattern || sourceColorId === targetColorId) {
+    const currentPattern = editedPattern?.sourcePattern === pattern ? editedPattern.pattern : pattern;
+    const nextPattern = editPattern(currentPattern);
+    if (nextPattern === currentPattern) {
       return;
     }
 
-    setEditedPattern((current) => ({
-      pattern: mergePatternColorIntoColor(current?.sourcePattern === pattern ? current.pattern : pattern, sourceColorId, targetColorId),
+    setEditHistory((current) => [...current, currentPattern]);
+    setEditedPattern({
+      pattern: nextPattern,
       sourcePattern: pattern,
-    }));
+    });
+  }
+
+  function handleUndoEditedPattern() {
+    if (!pattern || editHistory.length === 0) {
+      return;
+    }
+
+    const previousPattern = editHistory[editHistory.length - 1];
+    setEditHistory((current) => current.slice(0, -1));
+    setEditedPattern(previousPattern === pattern ? null : { pattern: previousPattern, sourcePattern: pattern });
   }
 
   function handleResetEditedPattern() {
-    setEditedPattern(null);
+    clearEditedPatternState();
   }
 
   return (
@@ -373,14 +423,14 @@ export function PatternTool() {
               colorLimit={colorLimit}
               colorStyle={colorStyle}
               mode={patternMode}
-              onColorLimitChange={setColorLimit}
-              onColorStyleChange={setColorStyle}
+              onColorLimitChange={handleColorLimitChange}
+              onColorStyleChange={handleColorStyleChange}
               onModeChange={handlePatternModeChange}
             />
 
             <BackgroundOptions
               ignoreWhiteBackground={ignoreWhiteBackground}
-              onIgnoreWhiteBackgroundChange={setIgnoreWhiteBackground}
+              onIgnoreWhiteBackgroundChange={handleIgnoreWhiteBackgroundChange}
             />
 
             <AspectRatioNotice pattern={displayedPattern} />
@@ -388,7 +438,7 @@ export function PatternTool() {
             <PatternVariantCards
               selectedVariantId={resolvedSelectedVariantId}
               variants={availableVariants}
-              onSelectVariant={setSelectedVariantId}
+              onSelectVariant={handleSelectVariant}
             />
           </aside>
 
@@ -397,10 +447,12 @@ export function PatternTool() {
             {displayedPattern ? <PatternExportPanel initialDraft={initialExportDraft} pattern={displayedPattern} onDraftChange={setExportDraft} /> : null}
             <ColorStats
               canResetPattern={hasEditedPattern}
+              canUndoPattern={canUndoEdit}
               pattern={displayedPattern}
               onResetPattern={handleResetEditedPattern}
               onMergeColor={handleMergeColor}
               onSetColorAsBackground={handleSetColorAsBackground}
+              onUndoPattern={handleUndoEditedPattern}
             />
           </section>
         </div>
