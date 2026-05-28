@@ -22,7 +22,7 @@
 - 导出设置增强
 - 图像类型 / 颜色数量 / 颜色风格设置
 - 参数配置化基础（`patternPresets.ts`）
-- 生成后清理 MVP：可将选中的颜色全局设为 ignored background，预览、材料统计和 PNG 导出使用编辑后的图纸，且可重置回原始生成结果
+- 生成后清理 MVP：可将选中的颜色全局设为 ignored background，或合并到另一个当前图纸已有颜色；预览、材料统计和 PNG 导出使用编辑后的图纸，且可重置回原始生成结果
 
 ## 当前暂停功能
 - FocusMode：代码保留，入口隐藏，暂不继续推进
@@ -49,13 +49,14 @@
 7. 宠物照片自动算法已多轮验证未达到稳定质量，后续不应继续单图启发式调参或把已停止的实验路线接入引擎。
 
 ## 近期阶段状态
-- 当前稳定提交：`99facd5 feat: allow setting pattern color as background`
-- Phase 4J 已停止本地 pet-photo 启发式路线：subject mask / framing、cell-only hybrid sampling、pre-quantization value separation、region-map detail/noise route 均已停止，Phase 4J-8 engine integration 不成立。
+- 当前稳定提交：`3c7ee39 feat: allow merging pattern colors`
+- Phase 4J 已停止本地 pet-photo 启发式路线：subject mask / framing、cell-only hybrid sampling、pre-quantization value separation、region-map detail/noise route、single-image tuning 均已停止，Phase 4J-8 engine integration 不成立。
 - Phase 4K 当前方向：从“自动生成完美宠物图”转为“自动初稿 + 用户可控修整”的产品级清理流。
 - Phase 4K-1 已完成：用户可在颜色 / 材料列表中将选中颜色设为 ignored background；可编辑图纸状态与原始生成结果分离；预览、材料统计和导出使用编辑后的 grid；reset 可恢复原始生成结果；手动 QA 已通过，导出 PNG 反映编辑后的图纸。
+- Phase 4K-2 已完成：用户可将选中颜色全局合并到另一个当前图纸已有颜色；source color 会从颜色 / 材料列表消失，target color 数量增加；预览、材料统计和导出继续使用编辑后的 grid；reset 可恢复原始生成结果。
 
 ## 当前下一步路线
-1. Phase 4K-2：合并选中颜色到另一个颜色，延续产品级清理流
+1. 暂不启动 Phase 4K-3；候选方向仅包括 local erase / restore、undo stack、改进编辑 UX、autosave edited pattern
 2. 保持 `generatePattern` 稳定，暂不继续宠物照片启发式算法调参
 3. 后续再评估 AI / 像素化预处理增强路径，不与 4K 混做
 
