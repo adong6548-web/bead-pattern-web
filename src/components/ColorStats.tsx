@@ -32,9 +32,8 @@ export function ColorStats({
       return;
     }
 
-    const firstTargetColorId = pattern.colorCounts.find(({ color }) => color.id !== sourceColorId)?.color.id ?? "";
     setMergeSourceColorId(sourceColorId);
-    setMergeTargetColorId(firstTargetColorId);
+    setMergeTargetColorId("");
   }
 
   function closeMergePicker() {
@@ -49,6 +48,16 @@ export function ColorStats({
 
     onMergeColor(sourceColorId, mergeTargetColorId);
     closeMergePicker();
+  }
+
+  function handleUndoPattern() {
+    closeMergePicker();
+    onUndoPattern?.();
+  }
+
+  function handleResetPattern() {
+    closeMergePicker();
+    onResetPattern?.();
   }
 
   return (
@@ -66,7 +75,7 @@ export function ColorStats({
               <button
                 className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm font-semibold text-ink/70 transition hover:bg-white"
                 type="button"
-                onClick={onUndoPattern}
+                onClick={handleUndoPattern}
               >
                 撤销上一步
               </button>
@@ -75,7 +84,7 @@ export function ColorStats({
               <button
                 className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm font-semibold text-ink/70 transition hover:bg-white"
                 type="button"
-                onClick={onResetPattern}
+                onClick={handleResetPattern}
               >
                 恢复原图纸
               </button>
@@ -86,6 +95,13 @@ export function ColorStats({
 
       {pattern ? (
         <div className="flex min-w-0 flex-col gap-3">
+          {canResetPattern ? (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-800">
+              <div className="font-semibold text-emerald-900">已编辑图纸</div>
+              <div>当前预览、材料统计和导出都会使用编辑后的图纸。</div>
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
             <div className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-2">
               <div className="font-semibold text-ink">{pattern.totalBeads}</div>
@@ -106,9 +122,11 @@ export function ColorStats({
           </div>
 
           {onSetColorAsBackground || canMergeColors ? (
-            <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-              设为背景或合并颜色会全局修改该色所有格，可能影响眼睛、鼻子、嘴巴或轮廓细节。
-            </p>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+              <div className="font-semibold text-amber-900">全局清理操作</div>
+              <div>设为背景会全局移除该颜色；合并颜色会把该颜色全部替换为目标颜色。</div>
+              <div>这些操作可能影响眼睛、鼻子、嘴巴或轮廓等真实细节。</div>
+            </div>
           ) : null}
 
           <div className="flex min-w-0 flex-col gap-2">
@@ -159,6 +177,7 @@ export function ColorStats({
                         value={mergeTargetColorId}
                         onChange={(event) => setMergeTargetColorId(event.target.value)}
                       >
+                        <option value="">选择目标颜色</option>
                         {mergeTargetOptions.map(({ color: targetColor }) => (
                           <option key={targetColor.id} value={targetColor.id}>
                             {targetColor.name} ({targetColor.id})
