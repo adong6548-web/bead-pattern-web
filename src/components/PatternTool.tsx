@@ -444,7 +444,14 @@ export function PatternTool() {
 
           <section className="flex min-w-0 flex-col gap-4">
             <PatternGrid key={displayedPattern ? `${displayedPattern.width}x${displayedPattern.height}` : "empty-pattern"} pattern={displayedPattern} />
-            {displayedPattern ? <PatternExportPanel initialDraft={initialExportDraft} pattern={displayedPattern} onDraftChange={setExportDraft} /> : null}
+            {displayedPattern ? (
+              <PatternExportPanel
+                initialDraft={initialExportDraft}
+                isEdited={hasEditedPattern}
+                pattern={displayedPattern}
+                onDraftChange={setExportDraft}
+              />
+            ) : null}
             <ColorStats
               canResetPattern={hasEditedPattern}
               canUndoPattern={canUndoEdit}

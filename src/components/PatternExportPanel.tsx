@@ -26,12 +26,13 @@ import type { PatternResult } from "@/types/pattern";
 import type { PersistedExportSettings } from "@/utils/persistence";
 
 type PatternExportPanelProps = {
+  isEdited?: boolean;
   initialDraft?: PersistedExportSettings | null;
   onDraftChange?: (draft: PersistedExportSettings) => void;
   pattern: PatternResult;
 };
 
-export function PatternExportPanel({ initialDraft, onDraftChange, pattern }: PatternExportPanelProps) {
+export function PatternExportPanel({ initialDraft, isEdited = false, onDraftChange, pattern }: PatternExportPanelProps) {
   const [kind, setKind] = useState<PatternExportKind>(() => initialDraft?.kind ?? "color");
   const [scale, setScale] = useState<PatternExportScale>(() => initialDraft?.scale ?? "hd");
   const [background, setBackground] = useState<PatternExportBackground>(() => initialDraft?.background ?? "white");
@@ -111,6 +112,13 @@ export function PatternExportPanel({ initialDraft, onDraftChange, pattern }: Pat
           {isExporting ? "生成中..." : "下载 PNG"}
         </button>
       </div>
+
+      {isEdited ? (
+        <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-800">
+          <div className="font-semibold text-emerald-900">当前导出将使用已编辑图纸</div>
+          <div>PNG 图纸和材料统计会按当前预览计算。</div>
+        </div>
+      ) : null}
 
       <div className="mt-3 grid gap-3 2xl:grid-cols-[1.4fr_1fr]">
         <div>
