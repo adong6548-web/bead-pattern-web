@@ -50,7 +50,7 @@
 8. 透明 PNG 不等于“干净可转换”输入；如果背景残留已经是不透明像素，引擎无法安全判断它是背景还是主体，必须先做输入质量判断。
 
 ## 近期阶段状态
-- 当前稳定提交：`9bd2a60 docs: record failed alpha-aware engine spike`
+- 当前稳定提交：`ac45034 docs: record failed conversion baseline simplification experiment`
 - Phase 4J 已停止本地 pet-photo 启发式路线：subject mask / framing、cell-only hybrid sampling、pre-quantization value separation、region-map detail/noise route、single-image tuning 均已停止，Phase 4J-8 engine integration 不成立。
 - Phase 4K 当前方向：从“自动生成完美宠物图”转为“自动初稿 + 用户可控修整”的产品级清理流。
 - Phase 4K-1 已完成：用户可在颜色 / 材料列表中将选中颜色设为 ignored background；可编辑图纸状态与原始生成结果分离；预览、材料统计和导出使用编辑后的 grid；reset 可恢复原始生成结果；手动 QA 已通过，导出 PNG 反映编辑后的图纸。
@@ -67,11 +67,12 @@
 - Phase 4L-13 已完成 manual visual QA / smoke check。用户在 in-app browser 中手动测试 transparent input quality upload notice，反馈基本无问题；这是 user manual visual/smoke test，不是 automated browser QA。保留 4L-12 core path validation 结论：ordinary JPG -> `no-alpha-or-jpg-like`、subject-dominant PNG -> `subject-dominant-transparent`、needs-review PNG -> warning，且 generation not blocked。当前 UI notice 可作为稳定 checkpoint；alpha-aware conversion 仍未集成。
 - Phase 4L-15 已完成 minimal alpha-aware engine spike，结论为 failed / non-integrated experiment。Spike 期间临时改过 `src/engine/generatePattern.ts` 和 `src/engine/trimBackground.ts`，WIP diff 已备份到 `/tmp/bead-4l15-alpha-aware-engine-spike.diff`，最终 retained code changes 为 none。检查通过：`npx tsc --noEmit`；`npm run lint` 仅保留既有 `ImageUploader.tsx` `<img>` warning；`npm run build` 仅保留既有 Tailwind module-type warning；`git diff --check` 通过。结果：JPG baseline passed，所有 JPG hash same；`pet-light` passed core alpha fix，白色 / 浅色主体被救回；`pet-dark` acceptable，未误清空；但 `pet-clean` 触发 stop condition，出现 top / edge dark strips regression。决策：不集成 4L-15 WIP，不继续 blind threshold tuning；alpha-aware core 仍有希望，但被 clean-control regression / retained edge ambiguity 阻塞。当前稳定产品状态仍只包括 transparent input quality notice，alpha-aware conversion 仍未集成。
 - Phase 4M-1 已完成 preview-only conversion baseline simplification experiment，结论为 failed / non-integrated。测试路线为 edge-preserving image simplification before bead quantization；临时脚本为 `/tmp/previewConversionBaselineV3.ts`，输出目录为 `/tmp/bead-preview-4m1-conversion-baseline-v3`，repo code changes 为 none。结果：`pet-light` C -> C，busy background 仍然主导，不更值得 cleanup；`pet-clean` B -> C，clean-control regression，出现更多 brown / teal contamination 和 structure pollution；`pet-dark` B -> B，基本中性，没有明显收益。决策：不集成 simplification-v3，不继续 blind threshold tuning，不把这一路线当成 first-draft baseline improvement。
+- Phase 4M-3 已完成 preview-only crop-first baseline experiment，结论为 failed / non-integrated。测试路线为 hybrid safe crop / subject framing before bead quantization；临时脚本为 `/tmp/previewCropFirstBaseline.ts`，输出目录为 `/tmp/bead-preview-4m3-crop-first-baseline`，repo code changes 为 none。Crop method 使用 edge / contrast density + border contrast saliency proxy、generous padding、target aspect ratio `0.5`、minimum retained source area `0.58`、weak or near-full-source crop skip guards，并使用一套全局参数。结果：`pet-light` skipped，C -> C，busy background still competitive；`pet-clean` skipped，B -> B，无退化但无收益；`pet-dark` crop applied，retained about 85.5% source，B -> B，无明显 cut-off 但也无 meaningful first-draft improvement。决策：不集成 crop-first v1，不继续 blind crop tuning；crop-first as tested does not solve first-draft desirability。
 
 ## 当前下一步路线
 1. Transparent input quality notice checkpoint 可收口；仅当用户观察到具体文案 / 布局问题时，再单独开启 UI polish。
 2. 关闭当前 4L alpha-aware engine integration attempt；未来若重开 alpha-aware conversion，必须有新的设计，不应继续 threshold stacking。
-3. 回到 Phase 4M route selection；下一步若继续 first-draft desirability，应考虑不同 baseline route，例如 subject framing / region-aware background handling / color quantization order，而不是 generic simplification threshold tuning。
+3. 回到 Phase 4M route selection；subject/background relationship 仍重要，但 pure safe crop 太保守。下一步若继续 first-draft desirability，应考虑 region-aware background handling 或 color quantization order redesign，而不是 generic simplification threshold tuning 或 blind crop tuning。
 4. 保持 `generatePattern` / `trimBackground` 稳定，alpha-aware core 暂不集成。
 5. 暂不启动 Phase 4K-6；候选方向仍仅包括 evaluate local erase / restore、autosave edited pattern、export/material QA checklist、edit history UX polish。
 6. 后续再评估 AI / 像素化预处理增强路径，不与 4K / 4L quality gate 混做。
