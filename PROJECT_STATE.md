@@ -50,7 +50,7 @@
 8. 透明 PNG 不等于“干净可转换”输入；如果背景残留已经是不透明像素，引擎无法安全判断它是背景还是主体，必须先做输入质量判断。
 
 ## 近期阶段状态
-- 当前稳定提交：`1fcfb56 docs: record transparent input quality notice validation`
+- 当前稳定提交：`dba67a0 docs: record manual QA for transparent input quality notice`
 - Phase 4J 已停止本地 pet-photo 启发式路线：subject mask / framing、cell-only hybrid sampling、pre-quantization value separation、region-map detail/noise route、single-image tuning 均已停止，Phase 4J-8 engine integration 不成立。
 - Phase 4K 当前方向：从“自动生成完美宠物图”转为“自动初稿 + 用户可控修整”的产品级清理流。
 - Phase 4K-1 已完成：用户可在颜色 / 材料列表中将选中颜色设为 ignored background；可编辑图纸状态与原始生成结果分离；预览、材料统计和导出使用编辑后的 grid；reset 可恢复原始生成结果；手动 QA 已通过，导出 PNG 反映编辑后的图纸。
@@ -65,10 +65,11 @@
 - Phase 4L-11 已完成：新增上传后的 transparent input quality notice，提交 `249b104 feat: add transparent input quality upload notice`，改动文件为 `src/components/PatternTool.tsx` 和 `src/components/TransparentInputQualityNotice.tsx`。上传后读取 `ImageData` 并调用 `analyzeTransparentInputQuality`，展示五类透明输入质量提示；不弹 modal，不阻止生成，不承诺透明 PNG 一定生成更好。未改 `generatePattern.ts`、`trimBackground.ts`、export / palette / autosave / cleanup flow，也未改 `PatternResult` public shape。检查通过：`npx tsc --noEmit`；`npm run lint` 仅保留既有 `ImageUploader.tsx` `<img>` warning；`npm run build` 仅保留既有 Tailwind module-type warning；`git diff --check` 通过。
 - Phase 4L-12 已完成 upload notice core path validation。由于当前会话没有可用浏览器自动化工具，本轮不是 full browser automation QA；验证路径为读取测试图片为 `ImageData`、调用 `analyzeTransparentInputQuality`、核对对应 UI 文案存在、调用 `generatePattern` 确认不阻止生成。结果：普通 JPG `pet-light-on-busy-background.jpg` 分类为 `no-alpha-or-jpg-like`，文案为“未检测到有效透明背景，将按普通图片处理。”，生成未阻止，`totalBeads 1080`；subject-dominant PNG `pet-clean-background-control.png` 分类为 `subject-dominant-transparent`，文案为“主体占画面较大，透明区域较少但可继续转换。”，无 warning / 不表现为错误，生成未阻止，`totalBeads 1008`；needs-review PNG `pet-light-on-busy-background.png` 分类为 `needs-review`，文案为“透明图可能有少量边缘残留...”，warning 存在，生成未阻止，`totalBeads 196`。验证过程中 `next-env.d.ts` 曾被 Next 自动触碰，已恢复；最终 git status clean。
 - Phase 4L-13 已完成 manual visual QA / smoke check。用户在 in-app browser 中手动测试 transparent input quality upload notice，反馈基本无问题；这是 user manual visual/smoke test，不是 automated browser QA。保留 4L-12 core path validation 结论：ordinary JPG -> `no-alpha-or-jpg-like`、subject-dominant PNG -> `subject-dominant-transparent`、needs-review PNG -> warning，且 generation not blocked。当前 UI notice 可作为稳定 checkpoint；alpha-aware conversion 仍未集成。
+- Phase 4L-15 已完成 minimal alpha-aware engine spike，结论为 failed / non-integrated experiment。Spike 期间临时改过 `src/engine/generatePattern.ts` 和 `src/engine/trimBackground.ts`，WIP diff 已备份到 `/tmp/bead-4l15-alpha-aware-engine-spike.diff`，最终 retained code changes 为 none。检查通过：`npx tsc --noEmit`；`npm run lint` 仅保留既有 `ImageUploader.tsx` `<img>` warning；`npm run build` 仅保留既有 Tailwind module-type warning；`git diff --check` 通过。结果：JPG baseline passed，所有 JPG hash same；`pet-light` passed core alpha fix，白色 / 浅色主体被救回；`pet-dark` acceptable，未误清空；但 `pet-clean` 触发 stop condition，出现 top / edge dark strips regression。决策：不集成 4L-15 WIP，不继续 blind threshold tuning；alpha-aware core 仍有希望，但被 clean-control regression / retained edge ambiguity 阻塞。当前稳定产品状态仍只包括 transparent input quality notice，alpha-aware conversion 仍未集成。
 
 ## 当前下一步路线
 1. Transparent input quality notice checkpoint 可收口；仅当用户观察到具体文案 / 布局问题时，再单独开启 UI polish。
-2. 未来 alpha-aware conversion 必须作为独立 planning task；不要从当前 UI notice 直接延伸到 conversion integration。
+2. 关闭当前 4L alpha-aware engine integration attempt；未来若重开 alpha-aware conversion，必须有新的设计，不应继续 threshold stacking。
 3. 保持 `generatePattern` / `trimBackground` 稳定，alpha-aware core 暂不集成。
 4. 暂不启动 Phase 4K-6；候选方向仍仅包括 evaluate local erase / restore、autosave edited pattern、export/material QA checklist、edit history UX polish。
 5. 后续再评估 AI / 像素化预处理增强路径，不与 4K / 4L quality gate 混做。
