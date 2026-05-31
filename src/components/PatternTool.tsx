@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_PATTERN_COLOR_STYLE, DEFAULT_PATTERN_MODE, getDefaultColorLimitForMode } from "@/config/patternPresets";
+import { analyzeTransparentInputQuality, type TransparentInputQualityReport } from "@/engine/analyzeTransparentInputQuality";
 import { generatePattern } from "@/engine/generatePattern";
 import { recommendPatternPlans } from "@/engine/recommendPatternSizes";
 import type { PatternColorStyle, PatternMode, PatternResult, PatternVariant } from "@/types/pattern";
@@ -28,6 +29,7 @@ import { ImageUploader } from "./ImageUploader";
 import { PatternExportPanel } from "./PatternExportPanel";
 import { PatternGrid } from "./PatternGrid";
 import { PatternVariantCards } from "./PatternVariantCards";
+import { TransparentInputQualityNotice } from "./TransparentInputQualityNotice";
 
 const SAVE_DEBOUNCE_MS = 350;
 
@@ -50,6 +52,7 @@ export function PatternTool() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [transparentInputQualityReport, setTransparentInputQualityReport] = useState<TransparentInputQualityReport | null>(null);
   const [restoredVariant, setRestoredVariant] = useState<PatternVariant | null>(null);
   const [editedPattern, setEditedPattern] = useState<EditedPatternState | null>(null);
   const [editHistory, setEditHistory] = useState<PatternResult[]>([]);
@@ -195,6 +198,7 @@ export function PatternTool() {
     if (validationError) {
       setError(validationError);
       setNotice(null);
+      setTransparentInputQualityReport(null);
       return;
     }
 
@@ -203,6 +207,7 @@ export function PatternTool() {
     setIsProcessing(true);
     setError(null);
     setNotice(null);
+    setTransparentInputQualityReport(null);
 
     try {
       const nextImage = await imageFileToSafeImageData(file);
@@ -227,6 +232,7 @@ export function PatternTool() {
       setInitialExportDraft(null);
       setError(null);
       setNotice(nextImage.warnings.length > 0 ? nextImage.warnings.join(" ") : null);
+      setTransparentInputQualityReport(analyzeTransparentInputQuality(nextImage.imageData));
     } catch (currentError) {
       if (!isMountedRef.current || uploadRequestIdRef.current !== requestId) {
         return;
@@ -234,6 +240,7 @@ export function PatternTool() {
 
       setError(currentError instanceof Error ? currentError.message : "生成过程中出现问题，请换一张图片或降低颜色数量后再试。");
       setNotice(null);
+      setTransparentInputQualityReport(null);
     } finally {
       if (isMountedRef.current && uploadRequestIdRef.current === requestId) {
         setIsProcessing(false);
@@ -287,6 +294,7 @@ export function PatternTool() {
     });
     setError(null);
     setNotice(null);
+    setTransparentInputQualityReport(null);
     setRestoredVariant(pendingRestore.restoredVariant);
     setEditedPattern(null);
     setEditHistory([]);
@@ -412,6 +420,8 @@ export function PatternTool() {
                 {notice}
               </div>
             ) : null}
+
+            <TransparentInputQualityNotice report={transparentInputQualityReport} />
 
             {isRestoredSnapshotOnly ? (
               <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-ink/70 shadow-sm">
