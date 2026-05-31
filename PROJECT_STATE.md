@@ -47,9 +47,10 @@
 5. Tailwind 4 曾因配置写法问题导致页面退回默认 HTML 样式，这类问题以后仍可能复发。
 6. `generatePattern.ts` 已经较长，后续继续加模式或策略时，维护复杂度会上升。
 7. 宠物照片自动算法已多轮验证未达到稳定质量，后续不应继续单图启发式调参或把已停止的实验路线接入引擎。
+8. 透明 PNG 不等于“干净可转换”输入；如果背景残留已经是不透明像素，引擎无法安全判断它是背景还是主体，必须先做输入质量判断。
 
 ## 近期阶段状态
-- 当前稳定提交：`cb380ae chore: clarify edited pattern export`
+- 当前稳定提交：`a34d175 feat: add transparent input quality analysis utility`
 - Phase 4J 已停止本地 pet-photo 启发式路线：subject mask / framing、cell-only hybrid sampling、pre-quantization value separation、region-map detail/noise route、single-image tuning 均已停止，Phase 4J-8 engine integration 不成立。
 - Phase 4K 当前方向：从“自动生成完美宠物图”转为“自动初稿 + 用户可控修整”的产品级清理流。
 - Phase 4K-1 已完成：用户可在颜色 / 材料列表中将选中颜色设为 ignored background；可编辑图纸状态与原始生成结果分离；预览、材料统计和导出使用编辑后的 grid；reset 可恢复原始生成结果；手动 QA 已通过，导出 PNG 反映编辑后的图纸。
@@ -57,11 +58,16 @@
 - Phase 4K-3 已完成：用户可撤销上一步清理编辑；设为背景、颜色合并都会写入 edit history；撤销后预览、颜色 / 材料统计和导出使用回退后的当前 grid；reset 恢复原始生成结果并清空 edit history；新生成、切换尺寸或修改生成设置会清空 edit history；手动浏览器 QA 已通过。
 - Phase 4K-4 已完成：清理编辑 UX 已 polish；编辑后显示“已编辑图纸”状态；全局操作说明明确区分设为背景和合并颜色；合并目标必须手动选择；撤销和 reset 会关闭残留合并 UI；手动浏览器 QA 已通过，导出仍匹配当前 displayed grid。
 - Phase 4K-5 已完成：导出区域在图纸被编辑后显示 edited-export note，明确 PNG 图纸和材料统计会按当前预览 / edited grid 计算；未编辑时不显示；undo / reset 清除编辑状态后提示消失；手动浏览器 QA 已通过，导出仍匹配当前 displayed grid。
+- Phase 4L 当前方向：暂停继续 4K 功能扩展，重新聚焦 first-draft desirability；当前阻塞不是缺少清理工具，而是复杂 / 多色输入的第一版图纸不够值得用户继续清理。
+- Phase 4L-0 / 4L-2 结论：source simplification / pixel-art-like draft 是较有希望的方向，但 pixel-art v2 仍未达到跨测试集验收标准，不能直接集成。
+- Phase 4L-3 / 4L-7 结论：alpha-aware transparent input 是正确方向，能避免透明像素被合成白色并误伤白色 / 浅色主体；但 retained opaque chunks 多数属于输入质量 / 不透明残留歧义，不应继续通过 engine 阈值硬清。alpha-aware core 已备份到 `/tmp/bead-4l7-alpha-aware-core-wip.diff`，暂未集成。
+- Phase 4L-9 已完成：新增 `src/engine/analyzeTransparentInputQuality.ts`，提交 `a34d175 feat: add transparent input quality analysis utility`。这是 util-only change；未接 UI，未改 `generatePattern.ts`，未改 `trimBackground.ts`，未改 `PatternResult` public shape。检查通过：`npx tsc --noEmit`；`npm run lint` 仅保留既有 `ImageUploader.tsx` `<img>` warning；`npm run build` 仅保留既有 Tailwind module-type warning；`git diff --check` 通过。
 
 ## 当前下一步路线
-1. 暂不启动 Phase 4K-6；候选方向仅包括 evaluate local erase / restore、autosave edited pattern、export/material QA checklist、edit history UX polish
-2. 保持 `generatePattern` 稳定，暂不继续宠物照片启发式算法调参
-3. 后续再评估 AI / 像素化预处理增强路径，不与 4K 混做
+1. Phase 4L-10 建议先做 UI warning integration plan，只规划如何展示 transparent-input quality status，不直接改转换算法。
+2. 保持 `generatePattern` / `trimBackground` 稳定，alpha-aware core 暂不集成。
+3. 暂不启动 Phase 4K-6；候选方向仍仅包括 evaluate local erase / restore、autosave edited pattern、export/material QA checklist、edit history UX polish。
+4. 后续再评估 AI / 像素化预处理增强路径，不与 4K / 4L quality gate 混做。
 
 ## MVP 稳定性目标
 - 页面在断网环境也可继续本地生成图纸
