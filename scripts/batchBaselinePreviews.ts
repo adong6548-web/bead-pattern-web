@@ -1,4 +1,4 @@
-import * as fs from "node:fs";
+﻿import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { execFileSync } from "node:child_process";
@@ -77,8 +77,8 @@ type CaseSummary = {
   jsonPath: string;
 };
 
-const DEFAULT_INPUT_DIR = "/Users/jinnianfadacai/Desktop/bead-test-set";
-const DEFAULT_OUTPUT_DIR = "/Users/jinnianfadacai/Desktop/bead-preview-4j1-baseline";
+const DEFAULT_INPUT_DIR = process.env.BEAD_TEST_INPUT_DIR ?? "./test-fixtures";
+const DEFAULT_OUTPUT_DIR = process.env.BEAD_TEST_OUTPUT_DIR ?? "./tmp/bead-preview-baseline";
 const COLOR_LIMIT = 24;
 const SIZES = [
   { width: 40, height: 80 },
@@ -578,3 +578,4 @@ try {
   process.stderr.write(`[batchBaselinePreviews] ${message}\n`);
   process.exitCode = 1;
 }
+
