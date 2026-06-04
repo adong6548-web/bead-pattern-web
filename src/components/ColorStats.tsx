@@ -64,7 +64,7 @@ export function ColorStats({
     <section className="min-w-0 rounded-2xl border border-stone-200 bg-white/85 p-4 shadow-sm">
       <div className="mb-3 flex min-w-0 flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-ink">颜色统计</h2>
+          <h2 className="text-base font-semibold text-ink">颜色统计与清理</h2>
           <p className="mt-1 truncate text-xs text-ink/60">
             {pattern ? `common 色卡 · ${getPatternModeLabel(pattern.mode)} · ${getColorStyleLabel(pattern.colorStyle)}` : "色号来自 common 色卡。"}
           </p>
@@ -123,9 +123,10 @@ export function ColorStats({
 
           {onSetColorAsBackground || canMergeColors ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-              <div className="font-semibold text-amber-900">全局清理操作</div>
-              <div>设为背景会全局移除该颜色；合并颜色会把该颜色全部替换为目标颜色。</div>
-              <div>这些操作可能影响眼睛、鼻子、嘴巴或轮廓等真实细节。</div>
+              <div className="font-semibold text-amber-900">清理当前图纸</div>
+              <div>这些操作会全局修改当前颜色；可撤销上一步或恢复原图纸。</div>
+              <div>设为背景：移除选中颜色。合并颜色：把选中颜色替换为另一个已有颜色。</div>
+              <div>可能影响眼睛、鼻子、嘴巴或轮廓等真实细节。</div>
             </div>
           ) : null}
 
@@ -207,7 +208,9 @@ export function ColorStats({
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-stone-300 px-4 py-8 text-center text-sm text-ink/55">暂无统计</div>
+        <div className="rounded-xl border border-dashed border-stone-300 px-4 py-8 text-center text-sm text-ink/55">
+          上传图片后，颜色统计和清理工具会显示在这里。
+        </div>
       )}
     </section>
   );

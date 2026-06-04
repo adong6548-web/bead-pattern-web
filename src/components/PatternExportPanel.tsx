@@ -101,7 +101,7 @@ export function PatternExportPanel({ initialDraft, isEdited = false, onDraftChan
       <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-base font-semibold text-ink">导出 PNG</h3>
-          <p className="mt-1 text-xs leading-5 text-ink/55">根据当前选中的整张图纸数据高清重绘，不截取网页画面。</p>
+          <p className="mt-1 text-xs leading-5 text-ink/55">根据当前预览的整张图纸高清重绘，不截取网页画面。</p>
         </div>
         <button
           className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
@@ -118,7 +118,11 @@ export function PatternExportPanel({ initialDraft, isEdited = false, onDraftChan
           <div className="font-semibold text-emerald-900">当前导出将使用已编辑图纸</div>
           <div>PNG 图纸和材料统计会按当前预览计算。</div>
         </div>
-      ) : null}
+      ) : (
+        <div className="mt-3 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs leading-5 text-ink/55">
+          导出当前图纸。
+        </div>
+      )}
 
       <div className="mt-3 grid gap-3 2xl:grid-cols-[1.4fr_1fr]">
         <div>

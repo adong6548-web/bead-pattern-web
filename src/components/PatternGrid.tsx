@@ -26,7 +26,7 @@ export function PatternGrid({ pattern }: PatternGridProps) {
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-ink">
-            {pattern ? `${pattern.width}×${pattern.height}` : "40×40"} 拼豆图纸
+            {pattern ? `${pattern.width}×${pattern.height}` : "40×40"} 可编辑拼豆初稿
           </h2>
           <p className="mt-1 text-xs text-ink/60">实心圆是拼豆，淡灰圆是忽略背景。</p>
         </div>
@@ -62,11 +62,13 @@ export function PatternGrid({ pattern }: PatternGridProps) {
         </div>
       </div>
 
-      <p className="text-xs text-ink/50">{pattern ? "可使用缩放查看图纸细节。" : "上传图片后生成图纸"}</p>
+      <p className="text-xs text-ink/50">
+        {pattern ? "这是可编辑初稿；如果背景或碎色偏多，可以从颜色列表中设为背景或合并颜色。" : "上传图片后生成可编辑初稿。"}
+      </p>
 
       <div className="w-full overflow-x-auto overflow-y-hidden rounded-2xl bg-[#f3f0e8] p-3" style={{ touchAction: "pan-x pan-y" }}>
         <div className="mx-auto flex min-h-64 w-fit min-w-max items-center justify-center sm:min-h-72">
-          {pattern ? <PatternCanvas cellSize={cellSize} pattern={pattern} /> : <div className="text-sm text-ink/55">上传图片后生成图纸</div>}
+          {pattern ? <PatternCanvas cellSize={cellSize} pattern={pattern} /> : <div className="text-sm text-ink/55">上传图片后生成可编辑初稿</div>}
         </div>
       </div>
     </section>

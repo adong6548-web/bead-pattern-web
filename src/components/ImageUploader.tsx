@@ -28,7 +28,7 @@ export function ImageUploader({ fileName, imageUrl, isProcessing, onFileSelect }
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-ink">上传图片</h2>
-          <p className="mt-1 text-sm text-ink/60">JPG / PNG / WebP，本地处理</p>
+          <p className="mt-1 text-sm text-ink/60">JPG / PNG / WebP，本地生成可编辑初稿</p>
         </div>
         <span className="shrink-0 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm">
           {isProcessing ? "生成中..." : imageUrl ? "更换图片" : "选择图片"}
@@ -42,7 +42,7 @@ export function ImageUploader({ fileName, imageUrl, isProcessing, onFileSelect }
           </div>
           <div className="min-w-0 text-left">
             <p className="text-sm font-semibold text-ink">已选择图片</p>
-            <p className="mt-1 text-xs text-ink/50">本地处理，不上传服务器。</p>
+            <p className="mt-1 text-xs text-ink/50">本地处理，不上传服务器；初稿生成后可继续清理颜色。</p>
             <p className="mt-2 text-xs font-medium text-ink/45">再次点击卡片可更换图片</p>
           </div>
         </div>

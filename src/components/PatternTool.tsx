@@ -366,7 +366,7 @@ export function PatternTool() {
             <p className="text-xs font-semibold uppercase tracking-wide text-coral">Bead Pattern</p>
             <h1 className="mt-1 text-2xl font-bold text-ink sm:text-[32px] sm:leading-tight">图片转拼豆图纸</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/70 sm:text-[15px]">
-              上传图片后，自动生成可导出的拼豆图纸。
+              上传图片，生成一版可编辑拼豆初稿；复杂背景、毛发或低对比照片，生成后可能需要清理颜色。
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs font-semibold text-ink/65">
@@ -437,6 +437,9 @@ export function PatternTool() {
               onColorStyleChange={handleColorStyleChange}
               onModeChange={handlePatternModeChange}
             />
+            <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-xs leading-5 text-ink/60 shadow-sm">
+              生成后可设置背景色、合并相近颜色，再导出图纸。
+            </div>
 
             <BackgroundOptions
               ignoreWhiteBackground={ignoreWhiteBackground}
